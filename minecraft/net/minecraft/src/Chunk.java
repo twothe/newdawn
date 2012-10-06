@@ -73,7 +73,7 @@ public class Chunk
 
     /** The time according to World.worldTime when this chunk was last saved */
     public long lastSaveTime;
-    public boolean field_50120_o;
+    public boolean deferRender;
 
     /**
      * Contains the current round-robin relight check index, and is implied as the relight check location as well.
@@ -93,7 +93,7 @@ public class Chunk
         this.isModified = false;
         this.hasEntities = false;
         this.lastSaveTime = 0L;
-        this.field_50120_o = false;
+        this.deferRender = false;
         this.queuedLightChecks = 4096;
         this.field_35846_u = false;
         this.entityLists = new List[16];
@@ -1280,7 +1280,10 @@ public class Chunk
         this.storageArrays = par1ArrayOfExtendedBlockStorage;
     }
 
-    public void func_48494_a(byte[] par1ArrayOfByte, int par2, int par3, boolean par4)
+    /**
+     * Initialise this chunk with new binary data
+     */
+    public void fillChunk(byte[] par1ArrayOfByte, int par2, int par3, boolean par4)
     {
         
         Iterator iterator = chunkTileEntityMap.values().iterator();

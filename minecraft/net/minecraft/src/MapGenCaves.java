@@ -134,7 +134,6 @@ public class MapGenCaves extends MapGenBase
                         {
                             for (int var44 = var38 + 1; !var58 && var44 >= var57 - 1; --var44)
                             {
-                                if (var44 < 0 || var44 >= chunkDataHeight) { continue; }
                                 var45 = (var42 * 16 + var43) * chunkDataHeight + var44;
 
                                 if (var44 >= 0 && var44 < chunkDataHeight)
