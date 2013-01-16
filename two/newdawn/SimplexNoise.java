@@ -75,7 +75,15 @@ public class SimplexNoise {  // Simplex noise in 2D, 3D and 4D
     System.arraycopy(variatedPermutationTable, 0, variatedPermutationTable, bytes.length, bytes.length);
   }
 
+  public NoiseStretch generateNoiseStretcher(double stretchX, double stretchZ) {
+    return new NoiseStretch(this, stretchX, stretchZ);
+  }
+
+  public NoiseStretch generateNoiseStretcher(double stretchX, double stretchY, double stretchZ) {
+    return new NoiseStretch(this, stretchX, stretchY, stretchZ);
+  }
   // 2D simplex noise
+
   public double noise(double xin, double yin) {
     // Skew the input space to determine which simplex cell we're in
     final double s = (xin + yin) * F2; // Hairy factor for 2D
