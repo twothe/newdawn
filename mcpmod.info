@@ -1,0 +1,17 @@
+[
+{
+  "modid": "newdawn",
+  "name": "Newdawn Terrain Generation",
+  "description": "Alternative terrain generation for the Overworld",
+  "version": "131210",
+  "mcversion": "1.6.4",
+  "logoFile": "",
+  "url": "",
+  "updateUrl": "",
+  "authors": ["Two"],
+  "credits": "",
+  "parent": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
