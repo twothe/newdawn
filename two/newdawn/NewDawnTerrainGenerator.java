@@ -27,6 +27,10 @@ import net.minecraft.world.gen.structure.MapGenVillage;
 import net.minecraftforge.common.MinecraftForge;
 import static net.minecraftforge.event.terraingen.InitMapGenEvent.EventType.*;
 import net.minecraftforge.event.terraingen.PopulateChunkEvent;
+import static net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate.EventType.DUNGEON;
+import static net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate.EventType.ICE;
+import static net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate.EventType.LAKE;
+import static net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate.EventType.LAVA;
 import net.minecraftforge.event.terraingen.TerrainGen;
 
 /**
@@ -40,13 +44,12 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
    */
   private static final boolean SHOW_MAP_FEATURES = true;
   private static final boolean SHOW_MAP_DECORATION = true;
-  private static final boolean SHOW_OCEAN_WATER = true;
-  private static final boolean SHOW_RIVERS = false;
+  private static final boolean SHOW_WATER = true;
   private static final int WORLD_HEIGHT = 256;
-  protected final double TEMPERATURE_FREEZING = -0.5;
-  protected final double TEMPERATURE_HOT = 0.5;
-  protected final double HUMIDITY_SPARSE = -0.5;
-  protected final double HUMIDITY_WET = 0.5;
+  protected final double TEMPERATURE_FREEZING = -0.4;
+  protected final double TEMPERATURE_HOT = 0.4;
+  protected final double HUMIDITY_SPARSE = -0.4;
+  protected final double HUMIDITY_WET = 0.4;
   /**
    * Reference to the World object.
    */
@@ -100,14 +103,14 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     this.availableHeight = WORLD_HEIGHT - this.minimumHeight;
     this.blockHeight = WORLD_HEIGHT / 128.0;
 
-    this.heightRegionNoise = worldNoise.generateNoiseStretcher(1220.0, 1211.0);
+    this.heightRegionNoise = worldNoise.generateNoiseStretcher(1120.0, 1211.0);
     this.heightBlockNoise = worldNoise.generateNoiseStretcher(33.0, 37.0);
     this.heightAreaNoise = worldNoise.generateNoiseStretcher(413.0, 427.0);
     this.fillerNoise = worldNoise.generateNoiseStretcher(16.0, 16.0);
     this.hillsNoise = worldNoise.generateNoiseStretcher(897.0, 937.0);
     this.temperatureChunkNoise = worldNoise.generateNoiseStretcher(1.0, 1.0);
     this.temperatureAreaNoise = worldNoise.generateNoiseStretcher(260.0, 361.0);
-    this.temperatureRegionNoise = worldNoise.generateNoiseStretcher(1320.0, 1110.0);
+    this.temperatureRegionNoise = worldNoise.generateNoiseStretcher(1320.0, 1390.0);
     this.humidityChunkNoise = worldNoise.generateNoiseStretcher(4.0, 4.0);
     this.humidityAreaNoise = worldNoise.generateNoiseStretcher(340.0, 243.0);
     this.humidityRegionNoise = worldNoise.generateNoiseStretcher(670.0, 519.0);
@@ -152,12 +155,12 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
         final double terrainRoughness = (this.worldNoise.noise(blockX / 1524.0, blockZ / 1798.0) + 1.0);
         final double localBlockHeight = this.heightBlockNoise.getNoise(blockX, blockZ) * terrainRoughness * 1.0 * this.blockHeight;
         final double areaHeight = this.heightAreaNoise.getNoise(blockX, blockZ) * terrainRoughness * 3.0 * this.blockHeight;
-        final double regionHeight = this.heightRegionNoise.getNoise(blockX, blockZ) * terrainRoughness * 8.0 * this.blockHeight;
+        final double regionHeight = this.heightRegionNoise.getNoise(blockX, blockZ) * 8.0 * this.blockHeight;
         final double temperature = this.temperatureRegionNoise.getNoise(blockX, blockZ) * 0.7
                 + this.temperatureAreaNoise.getNoise(blockX, blockZ) * 0.25
                 + this.temperatureChunkNoise.getNoise(blockX, blockZ) * 0.05;
-        final double humidity = this.humidityRegionNoise.getNoise(blockX, blockZ) * 0.65
-                + this.humidityAreaNoise.getNoise(blockX, blockZ) * 0.3
+        final double humidity = this.humidityRegionNoise.getNoise(blockX, blockZ) * 0.6
+                + this.humidityAreaNoise.getNoise(blockX, blockZ) * 0.35
                 + this.humidityChunkNoise.getNoise(blockX, blockZ) * 0.05;
         final boolean forestSmall = this.stretchForestSmallNoise.getNoise(blockX, blockZ) > (temperature >= TEMPERATURE_HOT ? 0.95 : 0.83);
         double hillsHeight = 0.0;
@@ -173,17 +176,6 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
         } else {
           hillsNoiseEffective = 0.0;
         }
-        int riverY = 1;
-        if (SHOW_RIVERS) {
-          final double RIVER_THRESHOLD = 3.0 / 260.0;
-          final double riverNoise = Math.abs(worldNoise.noise(blockX / 1212.0, blockZ / 1493.0));
-          if (riverNoise <= RIVER_THRESHOLD) {
-            riverY = (int) Math.round(-2.0 + 2.0 * Math.pow(riverNoise / RIVER_THRESHOLD, 2.0));
-            if (riverY > 0) {
-              riverY = 0;
-            }
-          }
-        }
         int height = Math.min(WORLD_HEIGHT - 1, (int) seaLevel + 1 + (int) Math.round(regionHeight + areaHeight + hillsHeight + localBlockHeight));
 
         chunkData[dataPos] = bedrockID;
@@ -193,17 +185,10 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
         }
 
         if (height < seaLevel) {
-          if (SHOW_RIVERS && (height - riverY >= seaLevel)) {
-            blockBiome = BiomeGenBase.river;
-          } else if ((humidity > HUMIDITY_SPARSE) && (temperature > TEMPERATURE_FREEZING) && (height + 1 >= seaLevel)) {
+          if ((humidity > HUMIDITY_SPARSE) && (temperature > TEMPERATURE_FREEZING) && (height + 1 >= seaLevel)) {
             blockBiome = BiomeGenBase.swampland;
           } else {
             blockBiome = getOceanBiome(temperature);
-          }
-        } else if (SHOW_RIVERS && (riverY <= 0)) {
-          blockBiome = BiomeGenBase.river;
-          if (riverY == 0) {
-            height = (int) Math.round((double) (height + seaLevel) / 2.0);
           }
         } else if ((hillsNoiseEffective >= 0.4) && (hillsNoiseEffective + this.worldNoise.noise(blockX, blockZ) / 2.0 >= 0.4)) {
           blockBiome = getHillsBiome(temperature);
@@ -236,29 +221,21 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
         }
         if ((blockBiome.topBlock == grassID) && (height < seaLevel)) {
           chunkData[dataPos + height] = dirtID;
-        } else if ((blockBiome.topBlock == sandID) && (temperature >= TEMPERATURE_HOT) &&(temperature < TEMPERATURE_HOT + 0.15) && (humidity < HUMIDITY_WET)) {
+        } else if ((blockBiome.topBlock == sandID) && (temperature >= TEMPERATURE_HOT) && (temperature < TEMPERATURE_HOT + 0.12) && (humidity < HUMIDITY_WET)) {
           chunkData[dataPos + height] = savannahID;
         } else {
           chunkData[dataPos + height] = blockBiome.topBlock;
         }
-        if (SHOW_OCEAN_WATER) {
-          if (SHOW_RIVERS && (riverY < 0)) {
-            final int riverHigh = (int) seaLevel;
-            final int riverLow = Math.min(height + 1, riverHigh + riverY + 1);
-            if (riverLow <= riverHigh) {
-              Arrays.fill(chunkData, dataPos + riverLow, dataPos + riverHigh, waterID);
-            }
-            chunkData[dataPos + riverHigh] = blockBiome.temperature <= 0.15F ? iceID : waterID;
-            if (riverHigh < height) {
-              Arrays.fill(chunkData, dataPos + riverHigh + 1, dataPos + height + 1, (byte) 0);
-            }
-          } else if (height < seaLevel) {
+        if (height < seaLevel) {
+          if (SHOW_WATER) {
             if (height + 1 < seaLevel) {
               Arrays.fill(chunkData, dataPos + height + 1, dataPos + (int) seaLevel, waterID);
             }
-            chunkData[dataPos + (int) seaLevel] = blockBiome.temperature <= 0.15F ? iceID : waterID;
+//            chunkData[dataPos + (int) seaLevel] = temperature <= TEMPERATURE_FREEZING ? iceID : waterID;
+            chunkData[dataPos + (int) seaLevel] = waterID;
           }
         }
+
         dataPos += WORLD_HEIGHT;
       }
     }
@@ -310,15 +287,6 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     return chunk;
   }
 
-  protected static boolean canPlaceSnowOn(final int blockID) {
-    if (blockID == 0) {
-      return true;
-    } else {
-      final Material material = Block.blocksList[blockID].blockMaterial;
-      return material.blocksMovement() && !(material.isLiquid() || (material == Material.plants));
-    }
-  }
-
   /**
    * Checks to see if a chunk exists at x, y
    */
@@ -331,63 +299,114 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
    * Populates chunk with ores etc etc
    */
   @Override
-  public void populate(IChunkProvider world, int chunkX, int chunkZ) {
-    if (SHOW_MAP_DECORATION) {
-//      timeDecorate.start();
-      BlockSand.fallInstantly = true;
-      final Chunk chunk = worldObj.getChunkFromChunkCoords(chunkX, chunkZ);
-      int x0 = chunkX * 16;
-      int z0 = chunkZ * 16;
-      BiomeGenBase biomegenbase = worldObj.getBiomeGenForCoords(x0 + 16, z0 + 16);
-      seedRandom.setSeed((long) ((worldNoise.noise(chunkX, chunkZ) + 1.0) / 2.0 * Long.MAX_VALUE));
-      boolean hasVillage = false;
+  public void populate(IChunkProvider chunkProvider, int chunkX, int chunkZ) {
+    BlockSand.fallInstantly = true;
+    final int blockX = chunkX * 16;
+    final int blockZ = chunkZ * 16;
+    final BiomeGenBase biomegenbase = this.worldObj.getBiomeGenForCoords(blockX + 16, blockZ + 16);
+    this.seedRandom.setSeed(this.worldObj.getSeed());
+    final long seedModX = this.seedRandom.nextLong() / 2L * 2L + 1L;
+    final long seedModY = this.seedRandom.nextLong() / 2L * 2L + 1L;
+    this.seedRandom.setSeed((long) chunkX * seedModX + (long) chunkZ * seedModY ^ this.worldObj.getSeed());
+    boolean hasVillage = false;
 
-      MinecraftForge.EVENT_BUS.post(new PopulateChunkEvent.Pre(world, worldObj, this.seedRandom, chunkX, chunkZ, hasVillage));
+    MinecraftForge.EVENT_BUS.post(new PopulateChunkEvent.Pre(chunkProvider, worldObj, seedRandom, chunkX, chunkZ, hasVillage));
 
-      if (mapFeaturesEnabled) {
-        mineshaftGenerator.generateStructuresInChunk(worldObj, seedRandom, chunkX, chunkZ);
-        if (biomegenbase.biomeID != BiomeGenBase.ocean.biomeID) {
-          hasVillage = villageGenerator.generateStructuresInChunk(worldObj, seedRandom, chunkX, chunkZ);
+    if (this.mapFeaturesEnabled) {
+      this.mineshaftGenerator.generateStructuresInChunk(this.worldObj, this.seedRandom, chunkX, chunkZ);
+      hasVillage = this.villageGenerator.generateStructuresInChunk(this.worldObj, this.seedRandom, chunkX, chunkZ);
+      this.strongholdGenerator.generateStructuresInChunk(this.worldObj, this.seedRandom, chunkX, chunkZ);
+      this.scatteredFeatureGenerator.generateStructuresInChunk(this.worldObj, this.seedRandom, chunkX, chunkZ);
+    }
+
+    int x;
+    int y;
+    int z;
+
+    if (biomegenbase != BiomeGenBase.desert && biomegenbase != BiomeGenBase.desertHills && !hasVillage && this.seedRandom.nextInt(4) == 0
+            && TerrainGen.populate(chunkProvider, worldObj, seedRandom, chunkX, chunkZ, hasVillage, LAKE)) {
+      x = blockX + this.seedRandom.nextInt(16) + 8;
+      y = this.seedRandom.nextInt(WORLD_HEIGHT);
+      z = blockZ + this.seedRandom.nextInt(16) + 8;
+      (new WorldGenLakes(Block.waterStill.blockID)).generate(this.worldObj, this.seedRandom, x, y, z);
+    }
+
+    if (TerrainGen.populate(chunkProvider, worldObj, seedRandom, chunkX, chunkZ, hasVillage, LAVA)
+            && !hasVillage && this.seedRandom.nextInt(8) == 0) {
+      x = blockX + this.seedRandom.nextInt(16) + 8;
+      y = this.seedRandom.nextInt(this.seedRandom.nextInt(WORLD_HEIGHT - 8) + 8);
+      z = blockZ + this.seedRandom.nextInt(16) + 8;
+
+      if (y <= seaLevel || this.seedRandom.nextInt(10) == 0) {
+        (new WorldGenLakes(Block.lavaStill.blockID)).generate(this.worldObj, this.seedRandom, x, y, z);
+      }
+    }
+
+    if (TerrainGen.populate(chunkProvider, worldObj, seedRandom, chunkX, chunkZ, hasVillage, DUNGEON)) {
+      for (int tries = 0; tries < 8; ++tries) {
+        x = blockX + this.seedRandom.nextInt(16) + 8;
+        y = this.seedRandom.nextInt(WORLD_HEIGHT);
+        z = blockZ + this.seedRandom.nextInt(16) + 8;
+        (new WorldGenDungeons()).generate(this.worldObj, this.seedRandom, x, y, z);
+      }
+    }
+
+    biomegenbase.decorate(this.worldObj, this.seedRandom, blockX, blockZ);
+    SpawnerAnimals.performWorldGenSpawning(this.worldObj, biomegenbase, blockX + 8, blockZ + 8, 16, 16, this.seedRandom);
+
+    if (TerrainGen.populate(chunkProvider, worldObj, seedRandom, chunkX, chunkZ, hasVillage, ICE)) {
+      applyIceAndSnow(this.worldObj.getChunkFromChunkCoords(chunkX, chunkZ));
+    }
+
+    MinecraftForge.EVENT_BUS.post(new PopulateChunkEvent.Post(chunkProvider, worldObj, seedRandom, chunkX, chunkZ, hasVillage));
+
+    BlockSand.fallInstantly = false;
+  }
+
+  private void applyIceAndSnow(final Chunk chunk) {
+    final int waterID = Block.waterStill.blockID;
+    final int iceID = Block.ice.blockID;
+    final int flatSnowID = Block.snow.blockID;
+
+    int height, blockID, biomeID;
+    BiomeGenBase blockBiome;
+    final byte[] chunkBiomes = chunk.getBiomeArray();
+    for (int x = 0; x < 16; ++x) {
+      for (int z = 0; z < 16; ++z) {
+        biomeID = chunkBiomes[x << 4 | z] & 0xFF;
+        blockBiome = BiomeGenBase.biomeList[biomeID];
+        if (blockBiome.getEnableSnow()) {
+          height = chunk.getHeightValue(x, z);
+          blockID = chunk.getBlockID(x, height, z);
+          while (blockID == 0) {
+            --height;
+            if (height <= 0) {
+              throw new IllegalStateException("Chunk (x" + chunk.xPosition + " z" + chunk.zPosition + ") at x" + x + " z" + z + " contains no blocks.");
+            }
+            blockID = chunk.getBlockID(x, height, z);
+          }
+          if (blockID == waterID) {
+            chunk.setBlockIDWithMetadata(x, height, z, iceID, 0);
+          } else if (canBlockCarrySnow(blockID)) {
+            chunk.setBlockIDWithMetadata(x, height + 1, z, flatSnowID, 0);
+          }
         }
-        strongholdGenerator.generateStructuresInChunk(worldObj, seedRandom, chunkX, chunkZ);
-        scatteredFeatureGenerator.generateStructuresInChunk(worldObj, seedRandom, chunkX, chunkZ);
       }
+    }
+  }
 
-      if (!hasVillage && seedRandom.nextInt(4) == 0) {
-        int x = x0 + seedRandom.nextInt(16) + 8;
-        int y = seedRandom.nextInt(128);
-        int z = z0 + seedRandom.nextInt(16) + 8;
-        (new WorldGenLakes(Block.waterStill.blockID)).generate(worldObj, seedRandom, x, y, z);
+  protected boolean canBlockCarrySnow(final int blockID) {
+    if (blockID == 0) {
+      return false;
+    } else {
+      final Material material = Block.blocksList[blockID].blockMaterial;
+      if (material.isLiquid()
+              || (material == Material.plants) // this does NOT include leaves
+              || (material == Material.fire)) {
+        return false;
+      } else {
+        return material.isSolid();
       }
-
-      if (!hasVillage && seedRandom.nextInt(8) == 0) {
-        int x = x0 + seedRandom.nextInt(16) + 8;
-        int y = seedRandom.nextInt(seedRandom.nextInt(120) + 8);
-        int z = z0 + seedRandom.nextInt(16) + 8;
-
-        if (y < 63 || seedRandom.nextInt(10) == 0) {
-          (new WorldGenLakes(Block.lavaStill.blockID)).generate(worldObj, seedRandom, x, y, z);
-        }
-      }
-
-      for (int j1 = 0; j1 < 8; j1++) {
-        int x = x0 + seedRandom.nextInt(16) + 8;
-        int y = seedRandom.nextInt(128);
-        int z = z0 + seedRandom.nextInt(16) + 8;
-
-        if (!(new WorldGenDungeons()).generate(worldObj, seedRandom, x, y, z));
-      }
-
-      biomegenbase.decorate(worldObj, seedRandom, x0, z0);
-
-      SpawnerAnimals.performWorldGenSpawning(worldObj, biomegenbase, x0 + 8, z0 + 8, 16, 16, seedRandom);
-
-      MinecraftForge.EVENT_BUS.post(new PopulateChunkEvent.Post(world, worldObj, this.seedRandom, chunkX, chunkZ, hasVillage));
-
-      BlockSand.fallInstantly = false;
-
-//      timeDecorate.stop();
-//      System.out.println(timeDecorate);
     }
   }
 
@@ -438,11 +457,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
    */
   @Override
   public ChunkPosition findClosestStructure(World par1World, String par2Str, int par3, int par4, int par5) {
-    if ("Stronghold".equals(par2Str) && strongholdGenerator != null) {
-      return strongholdGenerator.getNearestInstance(par1World, par3, par4, par5);
-    } else {
-      return null;
-    }
+    return "Stronghold".equals(par2Str) && this.strongholdGenerator != null ? this.strongholdGenerator.getNearestInstance(par1World, par3, par4, par5) : null;
   }
 
   BiomeGenBase getHillsBiome(final double temperature) {
