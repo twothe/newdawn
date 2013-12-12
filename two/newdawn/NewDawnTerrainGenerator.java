@@ -134,7 +134,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     final byte sandStoneID = (byte) Block.sandStone.blockID;
     final byte dirtID = (byte) Block.dirt.blockID;
     final byte grassID = (byte) Block.grass.blockID;
-    final byte savanahID = (byte) Block.hardenedClay.blockID;
+    final byte savannahID = (byte) Block.hardenedClay.blockID;
 
     BiomeGenBase.ocean.fillerBlock = sandID;
     BiomeGenBase.ocean.topBlock = sandID;
@@ -236,8 +236,8 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
         }
         if ((blockBiome.topBlock == grassID) && (height < seaLevel)) {
           chunkData[dataPos + height] = dirtID;
-        } else if ((blockBiome.topBlock == sandID) && (temperature < TEMPERATURE_HOT + 0.15) && (humidity < HUMIDITY_WET)) {
-          chunkData[dataPos + height] = savanahID;
+        } else if ((blockBiome.topBlock == sandID) && (temperature >= TEMPERATURE_HOT) &&(temperature < TEMPERATURE_HOT + 0.15) && (humidity < HUMIDITY_WET)) {
+          chunkData[dataPos + height] = savannahID;
         } else {
           chunkData[dataPos + height] = blockBiome.topBlock;
         }
