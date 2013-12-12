@@ -46,10 +46,10 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
   private static final boolean SHOW_MAP_DECORATION = true;
   private static final boolean SHOW_WATER = true;
   private static final int WORLD_HEIGHT = 256;
-  protected final double TEMPERATURE_FREEZING = -0.4;
-  protected final double TEMPERATURE_HOT = 0.4;
-  protected final double HUMIDITY_SPARSE = -0.4;
-  protected final double HUMIDITY_WET = 0.4;
+  protected final double TEMPERATURE_FREEZING = -0.5;
+  protected final double TEMPERATURE_HOT = 0.5;
+  protected final double HUMIDITY_SPARSE = -0.5;
+  protected final double HUMIDITY_WET = 0.5;
   protected final double MIN_HUMIDITY_WOODLAND = 0.2;
   /**
    * Reference to the World object.
@@ -115,7 +115,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     this.humidityLocalNoise = worldNoise.generateNoiseStretcher(6.0, 7.0);
     this.humidityAreaNoise = worldNoise.generateNoiseStretcher(340.0, 243.0);
     this.humidityRegionNoise = worldNoise.generateNoiseStretcher(870.0, 919.0);
-    this.stretchForestSmallNoise = worldNoise.generateNoiseStretcher(63.0, 76.0);
+    this.stretchForestSmallNoise = worldNoise.generateNoiseStretcher(93.0, 126.0);
 
     caveGenerator = new NewDawnMapGenCaves();
     strongholdGenerator = (MapGenStronghold) TerrainGen.getModdedMapGen(new MapGenStronghold(), STRONGHOLD);
@@ -159,10 +159,10 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
         final double temperature = this.temperatureRegionNoise.getNoise(blockX, blockZ) * 0.7
                 + this.temperatureAreaNoise.getNoise(blockX, blockZ) * 0.25
                 + this.temperatureChunkNoise.getNoise(blockX, blockZ) * 0.05;
-        final double humidity = this.humidityRegionNoise.getNoise(blockX, blockZ) * 0.65
-                + this.humidityAreaNoise.getNoise(blockX, blockZ) * 0.30
+        final double humidity = this.humidityRegionNoise.getNoise(blockX, blockZ) * 0.40
+                + this.humidityAreaNoise.getNoise(blockX, blockZ) * 0.55
                 + this.humidityLocalNoise.getNoise(blockX, blockZ) * 0.05
-                + ((this.stretchForestSmallNoise.getNoise(blockX, blockZ) > ((temperature >= TEMPERATURE_HOT) ? 0.95 : 0.83)) ? 0.6 : 0.0); // add some small forest patches
+                + ((this.stretchForestSmallNoise.getNoise(blockX, blockZ) > ((temperature >= TEMPERATURE_HOT) ? 0.85 : 0.50)) ? 0.5 : 0.0); // add some small forest patches
         double hillsHeight = 0.0;
         double hillsNoiseEffective = this.hillsNoise.getNoise(blockX, blockZ);
         if (hillsNoiseEffective >= 0.0) {
@@ -185,7 +185,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
         }
 
         if (height < seaLevel) {
-          if ((humidity > HUMIDITY_SPARSE) && (temperature > TEMPERATURE_FREEZING) && (height + 1 >= seaLevel)) {
+          if ((humidity >= MIN_HUMIDITY_WOODLAND) && (temperature > TEMPERATURE_FREEZING) && (height + 1 >= seaLevel)) {
             blockBiome = BiomeGenBase.swampland;
           } else {
             blockBiome = getOceanBiome(temperature);
@@ -322,7 +322,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     int y;
     int z;
 
-    if (this.mapFeaturesEnabled && biomegenbase != BiomeGenBase.desert && biomegenbase != BiomeGenBase.desertHills && !hasVillage && this.seedRandom.nextInt(6) == 0
+    if (this.mapFeaturesEnabled && biomegenbase != BiomeGenBase.desert && biomegenbase != BiomeGenBase.desertHills && !hasVillage && this.seedRandom.nextInt(10) == 0
             && TerrainGen.populate(chunkProvider, worldObj, seedRandom, chunkX, chunkZ, hasVillage, LAKE)) {
       x = blockX + this.seedRandom.nextInt(16) + 8;
       y = this.seedRandom.nextInt(WORLD_HEIGHT);
@@ -331,7 +331,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     }
 
     if (this.mapFeaturesEnabled && TerrainGen.populate(chunkProvider, worldObj, seedRandom, chunkX, chunkZ, hasVillage, LAVA)
-            && !hasVillage && this.seedRandom.nextInt(12) == 0) {
+            && !hasVillage && this.seedRandom.nextInt(16) == 0) {
       x = blockX + this.seedRandom.nextInt(16) + 8;
       y = this.seedRandom.nextInt(this.seedRandom.nextInt(WORLD_HEIGHT - 8) + 8);
       z = blockZ + this.seedRandom.nextInt(16) + 8;
