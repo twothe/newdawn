@@ -50,7 +50,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
   protected final double TEMPERATURE_HOT = 0.5;
   protected final double HUMIDITY_SPARSE = -0.5;
   protected final double HUMIDITY_WET = 0.5;
-  protected final double MIN_HUMIDITY_WOODLAND = 0.2;
+  protected final double MIN_HUMIDITY_WOODLAND = 0.25;
   /**
    * Reference to the World object.
    */
@@ -104,18 +104,18 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     this.availableHeight = WORLD_HEIGHT - this.minimumHeight;
     this.blockHeight = WORLD_HEIGHT / 128.0;
 
-    this.heightRegionNoise = worldNoise.generateNoiseStretcher(1120.0, 1211.0);
-    this.heightBlockNoise = worldNoise.generateNoiseStretcher(33.0, 37.0);
-    this.heightAreaNoise = worldNoise.generateNoiseStretcher(413.0, 427.0);
-    this.fillerNoise = worldNoise.generateNoiseStretcher(16.0, 16.0);
-    this.hillsNoise = worldNoise.generateNoiseStretcher(897.0, 937.0);
-    this.temperatureChunkNoise = worldNoise.generateNoiseStretcher(1.0, 1.0);
-    this.temperatureAreaNoise = worldNoise.generateNoiseStretcher(260.0, 361.0);
-    this.temperatureRegionNoise = worldNoise.generateNoiseStretcher(1320.0, 1390.0);
-    this.humidityLocalNoise = worldNoise.generateNoiseStretcher(6.0, 7.0);
-    this.humidityAreaNoise = worldNoise.generateNoiseStretcher(340.0, 243.0);
-    this.humidityRegionNoise = worldNoise.generateNoiseStretcher(870.0, 919.0);
-    this.stretchForestSmallNoise = worldNoise.generateNoiseStretcher(93.0, 126.0);
+    this.heightRegionNoise = worldNoise.generateNoiseStretcher(1120.0, 1211.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.heightBlockNoise = worldNoise.generateNoiseStretcher(33.0, 37.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.heightAreaNoise = worldNoise.generateNoiseStretcher(413.0, 427.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.fillerNoise = worldNoise.generateNoiseStretcher(16.0, 16.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.hillsNoise = worldNoise.generateNoiseStretcher(897.0, 937.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.temperatureChunkNoise = worldNoise.generateNoiseStretcher(1.0, 1.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.temperatureAreaNoise = worldNoise.generateNoiseStretcher(260.0, 361.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.temperatureRegionNoise = worldNoise.generateNoiseStretcher(1320.0, 1390.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.humidityLocalNoise = worldNoise.generateNoiseStretcher(6.0, 7.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.humidityAreaNoise = worldNoise.generateNoiseStretcher(340.0, 243.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.humidityRegionNoise = worldNoise.generateNoiseStretcher(870.0, 919.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.stretchForestSmallNoise = worldNoise.generateNoiseStretcher(93.0, 126.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
 
     caveGenerator = new NewDawnMapGenCaves();
     strongholdGenerator = (MapGenStronghold) TerrainGen.getModdedMapGen(new MapGenStronghold(), STRONGHOLD);
@@ -162,7 +162,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
         final double humidity = this.humidityRegionNoise.getNoise(blockX, blockZ) * 0.40
                 + this.humidityAreaNoise.getNoise(blockX, blockZ) * 0.55
                 + this.humidityLocalNoise.getNoise(blockX, blockZ) * 0.05
-                + ((this.stretchForestSmallNoise.getNoise(blockX, blockZ) > ((temperature >= TEMPERATURE_HOT) ? 0.85 : 0.50)) ? 0.5 : 0.0); // add some small forest patches
+                + ((this.stretchForestSmallNoise.getNoise(blockX, blockZ) > ((temperature >= TEMPERATURE_HOT) ? 0.85 : 0.60)) ? 0.5 : 0.0); // add some small forest patches
         double hillsHeight = 0.0;
         double hillsNoiseEffective = this.hillsNoise.getNoise(blockX, blockZ);
         if (hillsNoiseEffective >= 0.0) {

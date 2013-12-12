@@ -75,12 +75,12 @@ public class SimplexNoise {  // Simplex noise in 2D, 3D and 4D
     System.arraycopy(variatedPermutationTable, 0, variatedPermutationTable, bytes.length, bytes.length);
   }
 
-  public NoiseStretch generateNoiseStretcher(double stretchX, double stretchZ) {
-    return new NoiseStretch(this, stretchX, stretchZ);
+  public NoiseStretch generateNoiseStretcher(double stretchX, double stretchZ, double offsetX, double offsetZ) {
+    return new NoiseStretch(this, stretchX, stretchZ, offsetX, offsetZ);
   }
 
-  public NoiseStretch generateNoiseStretcher(double stretchX, double stretchY, double stretchZ) {
-    return new NoiseStretch(this, stretchX, stretchY, stretchZ);
+  public NoiseStretch generateNoiseStretcher(double stretchX, double stretchY, double stretchZ, double offsetX, double offsetY, double offsetZ) {
+    return new NoiseStretch(this, stretchX, stretchY, stretchZ, offsetX, offsetY, offsetZ);
   }
   // 2D simplex noise
 
