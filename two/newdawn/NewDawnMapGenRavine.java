@@ -8,7 +8,9 @@ import java.security.SecureRandom;
 import java.util.Random;
 import net.minecraft.block.Block;
 import net.minecraft.util.MathHelper;
+import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.gen.MapGenRavine;
+import two.newdawn.util.TwoMath;
 
 /**
  *
@@ -21,164 +23,148 @@ public class NewDawnMapGenRavine extends MapGenRavine {
   /**
    * Copied over from Mojang code for modification
    */
-  protected void generateRavine(long seed, int chunkX, int chunkZ, byte[] chunkData, double par6, double par8, double par10, float par12, float par13, float par14, int par15, int par16, double par17) {
-    final int worldHeight = chunkData.length / 256;
+  @Override
+  protected void generateRavine(long seed, int chunkX, int chunkZ, byte[] chunkData, double blockX, double blockY, double blockZ, float scale, float leftRightRadian, float upDownRadian, int currentY, int targetY, double scaleHeight) {
+    final int worldHeight = chunkData.length / (16 * 16); // 128 or 256
     final Random random = new SecureRandom();
     random.setSeed(seed);
-    double var20 = (double) (chunkX * 16 + 8);
-    double var22 = (double) (chunkZ * 16 + 8);
-    float var24 = 0.0F;
-    float var25 = 0.0F;
 
-    if (par16 <= 0) {
-      int var26 = this.range * 16 - 16;
-      par16 = var26 - random.nextInt(var26 / 4);
+    final double chunkCenterX = (double) (chunkX * 16 + 8);
+    final double chunkCenterZ = (double) (chunkZ * 16 + 8);
+    float leftRightChange = 0.0F;
+    float upDownChange = 0.0F;
+
+    if (targetY <= 0) {
+      final int blockRangeY = this.range * 16 - 16;
+      targetY = blockRangeY - random.nextInt(blockRangeY / 4);
     }
 
-    boolean var54 = false;
+    boolean createFinalRoom = false;
 
-    if (par15 == -1) {
-      par15 = par16 / 2;
-      var54 = true;
+    if (currentY == -1) {
+      currentY = targetY / 2;
+      createFinalRoom = true;
     }
 
-    float var27 = 1.0F;
+    float nextIntersectionHeight = 1.0F;
 
-    for (int var28 = 0; var28 < 128; ++var28) {
-      if (var28 == 0 || random.nextInt(3) == 0) {
-        var27 = 1.0F + random.nextFloat() * random.nextFloat() * 1.0F;
+    for (int k1 = 0; k1 < worldHeight; ++k1) {
+      if (k1 == 0 || random.nextInt(3) == 0) {
+        nextIntersectionHeight = 1.0F + random.nextFloat() * random.nextFloat() * 1.0F;
       }
 
-      this.field_75046_d[var28] = var27 * var27;
+      this.field_75046_d[k1] = nextIntersectionHeight * nextIntersectionHeight;
     }
 
-    for (; par15 < par16; ++par15) {
-      double var53 = 1.5D + (double) (MathHelper.sin((float) par15 * (float) Math.PI / (float) par16) * par12 * 1.0F);
-      double var30 = var53 * par17;
-      var53 *= (double) random.nextFloat() * 0.25D + 0.75D;
-      var30 *= (double) random.nextFloat() * 0.25D + 0.75D;
-      float var32 = MathHelper.cos(par14);
-      float var33 = MathHelper.sin(par14);
-      par6 += (double) (MathHelper.cos(par13) * var32);
-      par8 += (double) var33;
-      par10 += (double) (MathHelper.sin(par13) * var32);
-      par14 *= 0.7F;
-      par14 += var25 * 0.05F;
-      par13 += var24 * 0.05F;
-      var25 *= 0.8F;
-      var24 *= 0.5F;
-      var25 += (random.nextFloat() - random.nextFloat()) * random.nextFloat() * 2.0F;
-      var24 += (random.nextFloat() - random.nextFloat()) * random.nextFloat() * 4.0F;
+    for (; currentY < targetY; ++currentY) {
+      double roomWidth = 1.5D + (double) (MathHelper.sin((float) currentY * (float) Math.PI / (float) targetY) * scale * 1.0F);
+      double roomHeight = roomWidth * scaleHeight;
+      roomWidth *= (double) random.nextFloat() * 0.25D + 0.75D;
+      roomHeight *= (double) random.nextFloat() * 0.25D + 0.75D;
+      float f6 = MathHelper.cos(upDownRadian);
+      float f7 = MathHelper.sin(upDownRadian);
+      blockX += (double) (MathHelper.cos(leftRightRadian) * f6);
+      blockY += (double) f7;
+      blockZ += (double) (MathHelper.sin(leftRightRadian) * f6);
+      upDownRadian *= 0.7F;
+      upDownRadian += upDownChange * 0.05F;
+      leftRightRadian += leftRightChange * 0.05F;
+      upDownChange *= 0.8F;
+      leftRightChange *= 0.5F;
+      upDownChange += (random.nextFloat() - random.nextFloat()) * random.nextFloat() * 2.0F;
+      leftRightChange += (random.nextFloat() - random.nextFloat()) * random.nextFloat() * 4.0F;
 
-      if (var54 || random.nextInt(4) != 0) {
-        double var34 = par6 - var20;
-        double var36 = par10 - var22;
-        double var38 = (double) (par16 - par15);
-        double var40 = (double) (par12 + 2.0F + 16.0F);
+      if (createFinalRoom || random.nextInt(4) != 0) {
+        double d8 = blockX - chunkCenterX;
+        double d9 = blockZ - chunkCenterZ;
+        double d10 = (double) (targetY - currentY);
+        double d11 = (double) (scale + 2.0F + 16.0F);
 
-        if (var34 * var34 + var36 * var36 - var38 * var38 > var40 * var40) {
+        if (d8 * d8 + d9 * d9 - d10 * d10 > d11 * d11) {
           return;
         }
 
-        if (par6 >= var20 - 16.0D - var53 * 2.0D && par10 >= var22 - 16.0D - var53 * 2.0D && par6 <= var20 + 16.0D + var53 * 2.0D && par10 <= var22 + 16.0D + var53 * 2.0D) {
-          int var56 = MathHelper.floor_double(par6 - var53) - chunkX * 16 - 1;
-          int var35 = MathHelper.floor_double(par6 + var53) - chunkX * 16 + 1;
-          int var55 = MathHelper.floor_double(par8 - var30) - 1;
-          int var37 = MathHelper.floor_double(par8 + var30) + 1;
-          int var57 = MathHelper.floor_double(par10 - var53) - chunkZ * 16 - 1;
-          int var39 = MathHelper.floor_double(par10 + var53) - chunkZ * 16 + 1;
+        if (blockX >= chunkCenterX - 16.0D - roomWidth * 2.0D && blockZ >= chunkCenterZ - 16.0D - roomWidth * 2.0D && blockX <= chunkCenterX + 16.0D + roomWidth * 2.0D && blockZ <= chunkCenterZ + 16.0D + roomWidth * 2.0D) {
+          final int xLow = TwoMath.withinBounds(MathHelper.floor_double(blockX - roomWidth) - chunkX * 16 - 1, 0, 16);
+          final int xHigh = TwoMath.withinBounds(MathHelper.floor_double(blockX + roomWidth) - chunkX * 16 + 1, 0, 16);
+          final int yLow = TwoMath.withinBounds(MathHelper.floor_double(blockY - roomHeight) - 1, 1, worldHeight - 8);
+          final int yHigh = TwoMath.withinBounds(MathHelper.floor_double(blockY + roomHeight) + 1, 1, worldHeight - 8);
+          final int zLow = TwoMath.withinBounds(MathHelper.floor_double(blockZ - roomWidth) - chunkZ * 16 - 1, 0, 16);
+          final int zHigh = TwoMath.withinBounds(MathHelper.floor_double(blockZ + roomWidth) - chunkZ * 16 + 1, 0, 16);
 
-          if (var56 < 0) {
-            var56 = 0;
-          }
-
-          if (var35 > 16) {
-            var35 = 16;
-          }
-
-          if (var55 < 1) {
-            var55 = 1;
-          }
-
-          if (var37 > 120) {
-            var37 = 120;
-          }
-
-          if (var57 < 0) {
-            var57 = 0;
-          }
-
-          if (var39 > 16) {
-            var39 = 16;
-          }
-
-          boolean var58 = false;
-          int x;
-          int dataPos;
-
-          for (x = var56; !var58 && x < var35; ++x) {
-            for (int z = var57; !var58 && z < var39; ++z) {
-              for (int y = var37 + 1; !var58 && y >= var55 - 1; --y) {
-                dataPos = (x * 16 + z) * worldHeight + y;
+          boolean underWater = false;
+          for (int x = xLow; !underWater && x < xHigh; ++x) {
+            for (int z = zLow; !underWater && z < zHigh; ++z) {
+              for (int y = yHigh + 1; !underWater && y >= yLow - 1; --y) {
+                final int index = (x * 16 + z) * worldHeight + y;
 
                 if (y >= 0 && y < worldHeight) {
-                  if (chunkData[dataPos] == Block.waterMoving.blockID || chunkData[dataPos] == Block.waterStill.blockID) {
-                    var58 = true;
+                  if (isOceanBlock(chunkData, index, x, y, z, chunkX, chunkZ)) {
+                    underWater = true;
                   }
 
-                  if (y != var55 - 1 && x != var56 && x != var35 - 1 && z != var57 && z != var39 - 1) {
-                    y = var55;
+                  if (y != yLow - 1 && x != xLow && x != xHigh - 1 && z != zLow && z != zHigh - 1) {
+                    y = yLow;
                   }
                 }
               }
             }
           }
 
-          if (!var58) {
-            for (x = var56; x < var35; ++x) {
-              double var59 = ((double) (x + chunkX * 16) + 0.5D - par6) / var53;
+          if (!underWater) {
+            for (int x = xLow; x < xHigh; ++x) {
+              double d12 = ((double) (x + chunkX * 16) + 0.5D - blockX) / roomWidth;
 
-              for (dataPos = var57; dataPos < var39; ++dataPos) {
-                double var45 = ((double) (dataPos + chunkZ * 16) + 0.5D - par10) / var53;
-                int dataPos2 = (x * 16 + dataPos) * worldHeight + var37;
-                boolean hasGrassTop = false;
+              for (int z = zLow; z < zHigh; ++z) {
+                double d13 = ((double) (z + chunkZ * 16) + 0.5D - blockZ) / roomWidth;
+                int index = (x * 16 + z) * worldHeight + yHigh;
+                boolean flag2 = false;
 
-                if (var59 * var59 + var45 * var45 < 1.0D) {
-                  for (int var49 = var37 - 1; var49 >= var55; --var49) {
-                    double var50 = ((double) var49 + 0.5D - par8) / var30;
+                if (d12 * d12 + d13 * d13 < 1.0D) {
+                  for (int y = yHigh - 1; y >= yLow; --y) {
+                    double yScale = ((double) y + 0.5D - blockY) / roomHeight;
 
-                    if ((var59 * var59 + var45 * var45) * (double) this.field_75046_d[var49] + var50 * var50 / 6.0D < 1.0D) {
-                      byte blockID = chunkData[dataPos2];
-
-                      if (blockID == Block.grass.blockID) {
-                        hasGrassTop = true;
+                    if ((d12 * d12 + d13 * d13) * (double) this.field_75046_d[y] + yScale * yScale / 6.0D < 1.0D) {
+                      if (isTopBlock(chunkData, index, x, y, z, chunkX, chunkZ)) {
+                        flag2 = true;
                       }
 
-                      if (blockID == Block.stone.blockID || blockID == Block.dirt.blockID || blockID == Block.grass.blockID) {
-                        if (var49 < 10) {
-                          chunkData[dataPos2] = (byte) Block.lavaMoving.blockID;
-                        } else {
-                          chunkData[dataPos2] = 0;
-//
-//                          if (hasGrassTop && chunkData[dataPos2 - 1] == Block.dirt.blockID) {
-//                            chunkData[dataPos2 - 1] = this.worldObj.getBiomeGenForCoords(x + chunkX * 16, dataPos + chunkZ * 16).topBlock;
-//                          }
-                        }
-                      }
+                      digBlock(chunkData, index, x, y, z, chunkX, chunkZ, flag2);
                     }
 
-                    --dataPos2;
+                    --index;
                   }
                 }
               }
             }
 
-            if (var54) {
+            if (createFinalRoom) {
               break;
             }
           }
         }
       }
     }
+  }
+
+  //----------------------------------------------------------------------------
+  //-- Unmodified copy of private function -------------------------------------
+  //----------------------------------------------------------------------------
+  private boolean isExceptionBiome(BiomeGenBase biome) {
+    if (biome == BiomeGenBase.mushroomIsland) {
+      return true;
+    }
+    if (biome == BiomeGenBase.beach) {
+      return true;
+    }
+    if (biome == BiomeGenBase.desert) {
+      return true;
+    }
+    return false;
+  }
+
+  private boolean isTopBlock(byte[] data, int index, int x, int y, int z, int chunkX, int chunkZ) {
+    BiomeGenBase biome = worldObj.getBiomeGenForCoords(x + chunkX * 16, z + chunkZ * 16);
+    return (isExceptionBiome(biome) ? data[index] == Block.grass.blockID : data[index] == biome.topBlock);
   }
 }

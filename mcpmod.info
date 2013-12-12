@@ -1,17 +1,17 @@
 [
 {
-  "modid": "newdawn",
-  "name": "Newdawn Terrain Generation",
-  "description": "Alternative terrain generation for the Overworld",
-  "version": "131210",
-  "mcversion": "1.6.4",
-  "logoFile": "",
-  "url": "",
-  "updateUrl": "",
-  "authors": ["Two"],
-  "credits": "",
-  "parent": "",
-  "screenshots": [],
-  "dependencies": []
+  "modid" : "newdawn",
+  "name" : "New Dawn",
+  "version" : "131212",
+  "url" : "http://www.minecraftforum.net/topic/1241861-164forge-new-dawn-completely-new-terrain-engine/",
+  "credits" : "Made by Two.",
+  "authors": [
+    "Two"
+  ],
+  "description": "A new terrain engine for Minecraft.",
+  "logoFile" : "",
+  "updateUrl" : "",
+  "parent" : "",
+  "screenshots": []
 }
 ]

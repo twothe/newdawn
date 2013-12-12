@@ -310,62 +310,6 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     return chunk;
   }
 
-  private void updateChunkTopBlocks(final Chunk chunk) {
-    final int waterID = Block.waterStill.blockID;
-    final int iceID = Block.ice.blockID;
-    final int snowID = Block.snow.blockID;
-    final int sandID = Block.sand.blockID;
-    final int gravelID = Block.gravel.blockID;
-
-    int height, blockID, checkHeight;
-    final byte[] chunkBiomes = chunk.getBiomeArray();
-    for (int x = 0; x < 16; ++x) {
-      for (int z = 0; z < 16; ++z) {
-        final int biomeID = chunkBiomes[x << 4 | z] & 0xFF;
-        final BiomeGenBase blockBiome = BiomeGenBase.biomeList[biomeID];
-        if (blockBiome.getEnableSnow()) {
-          height = chunk.getHeightValue(x, z);
-          blockID = chunk.getBlockID(x, height, z);
-          while (blockID == 0) {
-            --height;
-            if (height <= 0) {
-              throw new IllegalStateException("Chunk (x" + chunk.xPosition + " z" + chunk.zPosition + ") at x" + x + " z" + z + " contains no blocks.");
-            }
-            blockID = chunk.getBlockID(x, height, z);
-          }
-          if (blockID == waterID) {
-            chunk.setBlockIDWithMetadata(x, height, z, iceID, 0);
-          } else if (blockID != iceID) {
-            checkHeight = height;
-            while ((checkHeight > 0) && ((blockID == sandID) || (blockID == gravelID) || (blockID == 0))) {
-              --checkHeight;
-              blockID = chunk.getBlockID(x, checkHeight, z);
-            }
-            ++checkHeight;
-            if (checkHeight < height) {
-              blockID = chunk.getBlockID(x, checkHeight, z);
-              while ((checkHeight < height) && ((blockID == sandID) || (blockID == gravelID))) {
-                ++checkHeight;
-                blockID = chunk.getBlockID(x, checkHeight, z);
-              }
-              if (checkHeight < height) {
-                while (checkHeight < height) {
-                  chunk.setBlockIDWithMetadata(x, height, z, 0, 0);
-                  --height;
-                }
-                --height;
-              }
-            }
-
-            if (canPlaceSnowOn(blockID)) {
-              chunk.setBlockIDWithMetadata(x, height + 1, z, snowID, 0);
-            }
-          }
-        }
-      }
-    }
-  }
-
   protected static boolean canPlaceSnowOn(final int blockID) {
     if (blockID == 0) {
       return true;
@@ -435,8 +379,6 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
       }
 
       biomegenbase.decorate(worldObj, seedRandom, x0, z0);
-
-      updateChunkTopBlocks(chunk);
 
       SpawnerAnimals.performWorldGenSpawning(worldObj, biomegenbase, x0 + 8, z0 + 8, 16, 16, seedRandom);
 
