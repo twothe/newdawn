@@ -355,7 +355,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     SpawnerAnimals.performWorldGenSpawning(this.worldObj, biomegenbase, blockX + 8, blockZ + 8, 16, 16, this.seedRandom);
 
     if (TerrainGen.populate(chunkProvider, worldObj, seedRandom, chunkX, chunkZ, hasVillage, ICE)) {
-      applyIceAndSnow(this.worldObj.getChunkFromChunkCoords(chunkX, chunkZ));
+      applyIceAndSnow(chunkX, chunkZ);
     }
 
     MinecraftForge.EVENT_BUS.post(new PopulateChunkEvent.Post(chunkProvider, worldObj, seedRandom, chunkX, chunkZ, hasVillage));
@@ -363,10 +363,13 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     BlockSand.fallInstantly = false;
   }
 
-  private void applyIceAndSnow(final Chunk chunk) {
+  private void applyIceAndSnow(final int chunkX, final int chunkZ) {
     final int waterID = Block.waterStill.blockID;
     final int iceID = Block.ice.blockID;
     final int flatSnowID = Block.snow.blockID;
+    final Chunk chunk = this.worldObj.getChunkFromChunkCoords(chunkX, chunkZ);
+    final int blockX0 = chunkX * 16;
+    final int blockZ0 = chunkZ * 16;
 
     int height, blockID, biomeID;
     BiomeGenBase blockBiome;
@@ -381,14 +384,14 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
           while (blockID == 0) {
             --height;
             if (height <= 0) {
-              throw new IllegalStateException("Chunk (x" + chunk.xPosition + " z" + chunk.zPosition + ") at x" + x + " z" + z + " contains no blocks.");
+              throw new IllegalStateException("Chunk (x" + chunk.xPosition + " z" + chunk.zPosition + ") at x" + blockX0 + " z" + blockZ0 + " contains no blocks.");
             }
             blockID = chunk.getBlockID(x, height, z);
           }
           if (blockID == waterID) {
-            chunk.setBlockIDWithMetadata(x, height, z, iceID, 0);
+            this.worldObj.setBlock(blockX0 + x, height, blockZ0 + z, iceID, 0, 2); // need to use world for proper block update distribution
           } else if (canBlockCarrySnow(blockID)) {
-            chunk.setBlockIDWithMetadata(x, height + 1, z, flatSnowID, 0);
+            this.worldObj.setBlock(blockX0 + x, height + 1, blockZ0 + z, flatSnowID, 0, 2); // need to use world for proper block update distribution
           }
         }
       }
