@@ -3,6 +3,7 @@
  */
 package two.newdawn;
 
+import cpw.mods.fml.common.FMLLog;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.List;
@@ -50,7 +51,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
   protected final double TEMPERATURE_HOT = 0.5;
   protected final double HUMIDITY_SPARSE = -0.5;
   protected final double HUMIDITY_WET = 0.5;
-  protected final double MIN_HUMIDITY_WOODLAND = 0.25;
+  protected final double MIN_HUMIDITY_WOODLAND = 0.18;
   /**
    * Reference to the World object.
    */
@@ -80,7 +81,8 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
   protected final SecureRandom seedRandom;
   protected final SimplexNoise worldNoise;
   protected final NoiseStretch heightBlockNoise;
-  protected final NoiseStretch heightAreaNoise;
+  protected final NoiseStretch heightAreaSmall;
+  protected final NoiseStretch heightAreaLarge;
   protected final NoiseStretch heightRegionNoise;
   protected final NoiseStretch fillerNoise;
   protected final NoiseStretch hillsNoise;
@@ -104,18 +106,19 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     this.availableHeight = WORLD_HEIGHT - this.minimumHeight;
     this.blockHeight = WORLD_HEIGHT / 128.0;
 
-    this.heightRegionNoise = worldNoise.generateNoiseStretcher(1120.0, 1211.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
-    this.heightBlockNoise = worldNoise.generateNoiseStretcher(33.0, 37.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
-    this.heightAreaNoise = worldNoise.generateNoiseStretcher(413.0, 427.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.heightBlockNoise = worldNoise.generateNoiseStretcher(23.0, 27.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.heightAreaSmall = worldNoise.generateNoiseStretcher(413.0, 467.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.heightAreaLarge = worldNoise.generateNoiseStretcher(913.0, 967.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.heightRegionNoise = worldNoise.generateNoiseStretcher(1920.0, 1811.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
     this.fillerNoise = worldNoise.generateNoiseStretcher(16.0, 16.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
     this.hillsNoise = worldNoise.generateNoiseStretcher(897.0, 937.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
-    this.temperatureChunkNoise = worldNoise.generateNoiseStretcher(1.0, 1.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
-    this.temperatureAreaNoise = worldNoise.generateNoiseStretcher(260.0, 361.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
-    this.temperatureRegionNoise = worldNoise.generateNoiseStretcher(1320.0, 1390.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.temperatureChunkNoise = worldNoise.generateNoiseStretcher(2.1, 2.2, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.temperatureAreaNoise = worldNoise.generateNoiseStretcher(260.0, 273.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.temperatureRegionNoise = worldNoise.generateNoiseStretcher(2420.0, 2590.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
     this.humidityLocalNoise = worldNoise.generateNoiseStretcher(6.0, 7.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
-    this.humidityAreaNoise = worldNoise.generateNoiseStretcher(340.0, 243.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
-    this.humidityRegionNoise = worldNoise.generateNoiseStretcher(870.0, 919.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
-    this.stretchForestSmallNoise = worldNoise.generateNoiseStretcher(93.0, 126.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.humidityAreaNoise = worldNoise.generateNoiseStretcher(320.0, 273.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.humidityRegionNoise = worldNoise.generateNoiseStretcher(880.0, 919.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.stretchForestSmallNoise = worldNoise.generateNoiseStretcher(93.0, 116.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
 
     caveGenerator = new NewDawnMapGenCaves();
     strongholdGenerator = (MapGenStronghold) TerrainGen.getModdedMapGen(new MapGenStronghold(), STRONGHOLD);
@@ -147,43 +150,52 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     BiomeGenBase blockBiome;
 
     int x, y, z, dataPos = 0;
+    byte fillerBlockID, topBlockID;
     for (x = 0; x < 16; ++x) {
       for (z = 0; z < 16; ++z) {
         final double blockX = x0 + (double) x;
         final double blockZ = z0 + (double) z;
 
-        final double terrainRoughness = (this.worldNoise.noise(blockX / 1524.0, blockZ / 1798.0) + 1.0);
-        final double localBlockHeight = this.heightBlockNoise.getNoise(blockX, blockZ) * terrainRoughness * 1.0 * this.blockHeight;
-        final double areaHeight = this.heightAreaNoise.getNoise(blockX, blockZ) * terrainRoughness * 3.0 * this.blockHeight;
-        final double regionHeight = this.heightRegionNoise.getNoise(blockX, blockZ) * 8.0 * this.blockHeight;
-        final double temperature = this.temperatureRegionNoise.getNoise(blockX, blockZ) * 0.7
-                + this.temperatureAreaNoise.getNoise(blockX, blockZ) * 0.25
-                + this.temperatureChunkNoise.getNoise(blockX, blockZ) * 0.05;
-        final double humidity = this.humidityRegionNoise.getNoise(blockX, blockZ) * 0.40
-                + this.humidityAreaNoise.getNoise(blockX, blockZ) * 0.55
-                + this.humidityLocalNoise.getNoise(blockX, blockZ) * 0.05
-                + ((this.stretchForestSmallNoise.getNoise(blockX, blockZ) > ((temperature >= TEMPERATURE_HOT) ? 0.85 : 0.60)) ? 0.5 : 0.0); // add some small forest patches
-        double hillsHeight = 0.0;
+        //--- calculate world height at this coordinate ------------------------
+        double hillsHeight = 0.0; // calculation for hills
         double hillsNoiseEffective = this.hillsNoise.getNoise(blockX, blockZ);
         if (hillsNoiseEffective >= 0.0) {
-          hillsNoiseEffective = -(Math.cos(Math.PI * Math.pow(hillsNoiseEffective, 4.0)) - 1.0) / 2.0;
-          if (hillsNoiseEffective >= 0.01) {
+          hillsNoiseEffective = -(Math.cos(Math.PI * Math.pow(hillsNoiseEffective, 4.0)) - 1.0) / 2.0; // create a cosine spike from the sinus noise
+          if (hillsNoiseEffective >= 0.01) { // the above calculation tends to lower hillsNoiseEffective to zero
             hillsNoiseEffective *= (this.worldNoise.noise(blockX / 67.0, blockZ / 69.0) / 2.5 + 1.0)
                     * (this.worldNoise.noise(blockX / 41.0, blockZ / 45.0) / 2.0 + 1.0)
                     * (this.worldNoise.noise(blockX / 2.2, blockZ / 2.0) / 38.0 / 2.0 + 1.0);
-            hillsHeight = hillsNoiseEffective * 14.0 * this.blockHeight;
+            hillsHeight = hillsNoiseEffective * 32.0 * this.blockHeight; // the effective height of the hill at this point
           }
         } else {
           hillsNoiseEffective = 0.0;
         }
-        int height = Math.min(WORLD_HEIGHT - 1, (int) seaLevel + 1 + (int) Math.round(regionHeight + areaHeight + hillsHeight + localBlockHeight));
 
-        chunkData[dataPos] = bedrockID;
-        final int bedrockMaxHeight = Math.min(5, height);
-        for (int i = 1; i < bedrockMaxHeight; ++i) {
-          chunkData[dataPos + i] = this.worldNoise.noise(blockX, i, blockZ) <= 0.0 ? bedrockID : stoneID;
-        }
+        // terrain height
+        final double terrainRoughness = (this.worldNoise.noise(blockX / 1524.0, blockZ / 1798.0) + 1.0);
+        final double localBlockHeight = this.heightBlockNoise.getNoise(blockX, blockZ) * terrainRoughness * 0.5 * this.blockHeight;
+        final double areaSmallHeight = this.heightAreaSmall.getNoise(blockX, blockZ) * terrainRoughness * 6.0 * this.blockHeight;
+        final double areaLargeHeight = this.heightAreaLarge.getNoise(blockX, blockZ) * terrainRoughness * 10.0 * this.blockHeight;
+        final double regionHeight = (this.heightRegionNoise.getNoise(blockX, blockZ) + 0.25) * 8.0 / 1.25 * this.blockHeight;
+        final int height = Math.min(WORLD_HEIGHT - 1, (int) seaLevel + 1 + (int) Math.round(regionHeight + areaLargeHeight + areaSmallHeight + hillsHeight + localBlockHeight)); // final height at this coordinate
 
+        //--- calculate temperature and humidity -------------------------------
+        final double heightShifted = height + seaLevel - WORLD_HEIGHT / 2.0; // just for the formula: shift formula zero to sea-level
+        final double worldHeightMod = heightShifted < 0.0 ? 0.0
+                : -Math.pow(heightShifted / ((double) WORLD_HEIGHT), 3.0) * Math.pow(heightShifted * 0.4, 1.001);
+        final double temperature = this.temperatureRegionNoise.getNoise(blockX, blockZ) * 0.8
+                + this.temperatureAreaNoise.getNoise(blockX, blockZ) * 0.15
+                + this.temperatureChunkNoise.getNoise(blockX, blockZ) * 0.05
+                + worldHeightMod; // temperature reduces with height
+        final double humidity = this.humidityRegionNoise.getNoise(blockX, blockZ) * 0.40
+                + this.humidityAreaNoise.getNoise(blockX, blockZ) * 0.55
+                + this.humidityLocalNoise.getNoise(blockX, blockZ) * 0.05
+                + ((this.stretchForestSmallNoise.getNoise(blockX, blockZ) > ((temperature >= TEMPERATURE_HOT) ? 0.85 : 0.60)) ? 0.5 : 0.0) // add some small forest patches
+                + worldHeightMod; // humidity reduces with height
+
+//        FMLLog.info("t{%+5.3f}, h{%+5.3f}, height{%3d} -> mod{%+5.3f}", temperature, humidity, height, worldHeightMod);
+
+        //--- decide for biome based on humidity, temperature and height -------
         if (height < seaLevel) {
           if ((humidity >= MIN_HUMIDITY_WOODLAND) && (temperature > TEMPERATURE_FREEZING) && (height + 1 >= seaLevel)) {
             blockBiome = BiomeGenBase.swampland;
@@ -194,7 +206,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
           blockBiome = getHillsBiome(temperature);
         } else {
           if (humidity >= MIN_HUMIDITY_WOODLAND) {
-            if (areaHeight + regionHeight >= 24) {
+            if (areaSmallHeight + regionHeight >= 24) {
               blockBiome = getForestHillsBiome(temperature);
             } else if ((height - 1 <= seaLevel) && (temperature >= 0.0)) {
               blockBiome = BiomeGenBase.swampland;
@@ -209,26 +221,49 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
         }
         chunkBiomes[(x << 4) | z & 0x0F] = blockBiome;
 
-        final int heightFiller = height - (int) Math.round((this.fillerNoise.getNoise(blockX, blockZ) + 1.0) * 2.0 * this.blockHeight);
+        //--- decide for filler and top block by biome -------------------------
+        fillerBlockID = blockBiome.fillerBlock;
+        topBlockID = blockBiome.topBlock;
+        if ((topBlockID == grassID) && (height < seaLevel)) {
+          topBlockID = dirtID;
+        } else if ((humidity < HUMIDITY_SPARSE) && (temperature < TEMPERATURE_HOT)) {
+          topBlockID = stoneID;
+          fillerBlockID = stoneID;
+        } else if ((topBlockID == sandID) && (temperature >= TEMPERATURE_HOT) && (temperature < TEMPERATURE_HOT + 0.10)) {
+          if (humidity <= HUMIDITY_SPARSE) {
+            fillerBlockID = sandID;
+            topBlockID = sandID;
+          } else if (humidity <= HUMIDITY_WET) {
+            fillerBlockID = sandID;
+            topBlockID = savannahID;
+          } else {
+            fillerBlockID = savannahID;
+            topBlockID = savannahID;
+          }
+        }
+
+        //--- write chunk data -------------------------------------------------
+        chunkData[dataPos] = bedrockID;
+        final int bedrockMaxHeight = Math.min(5, height);
+        for (int i = 1; i < bedrockMaxHeight; ++i) {
+          chunkData[dataPos + i] = this.worldNoise.noise(blockX, i, blockZ) <= 0.0 ? bedrockID : stoneID; // bedrock mixed with some noise
+        }
+
+        final int heightFiller = height - (int) Math.round((this.fillerNoise.getNoise(blockX, blockZ) + 1.0) * 1.5 * this.blockHeight);
         if (heightFiller > bedrockMaxHeight) {
-          Arrays.fill(chunkData, dataPos + bedrockMaxHeight, dataPos + heightFiller, stoneID);
-          Arrays.fill(chunkData, dataPos + heightFiller, dataPos + height, blockBiome.fillerBlock);
-          if (blockBiome.fillerBlock == sandID) {
-            Arrays.fill(chunkData, dataPos + heightFiller, dataPos + (height + heightFiller) / 2, sandStoneID);
+          Arrays.fill(chunkData, dataPos + bedrockMaxHeight, dataPos + heightFiller, stoneID); // bedrock -> almost at top
+          Arrays.fill(chunkData, dataPos + heightFiller, dataPos + height, fillerBlockID); // almost at top -> top
+          if (fillerBlockID == sandID) {
+            Arrays.fill(chunkData, dataPos + heightFiller, dataPos + (height + heightFiller) / 2, sandStoneID); // ad some sandstone so all the sand won't wall into caves
           }
         } else {
-          Arrays.fill(chunkData, dataPos + bedrockMaxHeight, dataPos + height, stoneID);
+          Arrays.fill(chunkData, dataPos + bedrockMaxHeight, dataPos + height, stoneID); // special case: world height is almost at bedrock level
         }
-        if ((blockBiome.topBlock == grassID) && (height < seaLevel)) {
-          chunkData[dataPos + height] = dirtID;
-        } else if ((blockBiome.topBlock == sandID) && (temperature >= TEMPERATURE_HOT) && (temperature < TEMPERATURE_HOT + 0.12) && (humidity < HUMIDITY_WET)) {
-          chunkData[dataPos + height] = savannahID;
-        } else {
-          chunkData[dataPos + height] = blockBiome.topBlock;
-        }
-        if (height < seaLevel) {
+        chunkData[dataPos + height] = topBlockID; // top block by biome and modifiers
+
+        if (height < seaLevel) { // this this part of the world below ocean level?
           if (SHOW_WATER) {
-            if (height + 1 < seaLevel) {
+            if (height + 1 < seaLevel) { // is there more than one water block required?
               Arrays.fill(chunkData, dataPos + height + 1, dataPos + (int) seaLevel, waterID);
             }
             chunkData[dataPos + (int) seaLevel] = waterID;
