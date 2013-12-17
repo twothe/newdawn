@@ -13,7 +13,7 @@ import cpw.mods.fml.common.network.NetworkMod;
  *
  * @author Two
  */
-@Mod(modid = "newdawn", name = "New Dawn", version = "131212")
+@Mod(modid = "newdawn", name = "New Dawn", version = "131217")
 @NetworkMod(clientSideRequired = false, serverSideRequired = false)
 public class NewDawn {
 
