@@ -3,6 +3,7 @@
  */
 package two.newdawn;
 
+import two.newdawn.worldgen.NewDawnTerrainGenerator;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
 import net.minecraft.world.chunk.IChunkProvider;

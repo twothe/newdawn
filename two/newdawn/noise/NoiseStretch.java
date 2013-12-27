@@ -1,7 +1,7 @@
 /*
  * Copyright (c) by Stefan Feldbinder aka Two
  */
-package two.newdawn;
+package two.newdawn.noise;
 
 /**
  *

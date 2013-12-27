@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package two.newdawn;
+package two.newdawn.worldgen;
 
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;

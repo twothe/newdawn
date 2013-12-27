@@ -2,37 +2,35 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package two.newdawn;
+package two.newdawn.worldgen;
 
 import java.security.SecureRandom;
 import java.util.Random;
 import net.minecraft.block.Block;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.biome.BiomeGenBase;
-import net.minecraft.world.gen.MapGenRavine;
+import net.minecraft.world.gen.MapGenCaves;
 import two.newdawn.util.TwoMath;
 
 /**
  *
  * @author Two
  */
-public class NewDawnMapGenRavine extends MapGenRavine {
-
-  private float[] field_75046_d = new float[1024];
+public class NewDawnMapGenCaves extends MapGenCaves {
 
   /**
    * Copied over from Mojang code for modification
    */
   @Override
-  protected void generateRavine(long seed, int chunkX, int chunkZ, byte[] chunkData, double blockX, double blockY, double blockZ, float scale, float leftRightRadian, float upDownRadian, int currentY, int targetY, double scaleHeight) {
+  protected void generateCaveNode(final long seed, int chunkX, int chunkZ, byte[] chunkData, double blockX, double blockY, double blockZ, float scale, float leftRightRadian, float upDownRadian, int currentY, int targetY, double scaleHeight) {
     final int worldHeight = chunkData.length / (16 * 16); // 128 or 256
-    final Random random = new SecureRandom();
-    random.setSeed(seed);
 
     final double chunkCenterX = (double) (chunkX * 16 + 8);
     final double chunkCenterZ = (double) (chunkZ * 16 + 8);
     float leftRightChange = 0.0F;
     float upDownChange = 0.0F;
+    final Random random = new SecureRandom();
+    random.setSeed(seed);
 
     if (targetY <= 0) {
       final int blockRangeY = this.range * 16 - 16;
@@ -46,41 +44,38 @@ public class NewDawnMapGenRavine extends MapGenRavine {
       createFinalRoom = true;
     }
 
-    float nextIntersectionHeight = 1.0F;
+    final int nextIntersectionHeight = random.nextInt(targetY / 2) + targetY / 4;
 
-    for (int k1 = 0; k1 < worldHeight; ++k1) {
-      if (k1 == 0 || random.nextInt(3) == 0) {
-        nextIntersectionHeight = 1.0F + random.nextFloat() * random.nextFloat() * 1.0F;
-      }
+    for (final boolean strongVerticalChange = random.nextInt(6) == 0; currentY < targetY; ++currentY) {
+      final double roomWidth = 1.5D + (double) (MathHelper.sin((float) currentY * (float) Math.PI / (float) targetY) * scale * 1.0F);
+      final double roomHeight = roomWidth * scaleHeight;
+      final float blockMoveHorizontal = MathHelper.cos(upDownRadian);
+      final float blockMoveVertical = MathHelper.sin(upDownRadian);
+      blockX += (double) (MathHelper.cos(leftRightRadian) * blockMoveHorizontal);
+      blockY += (double) blockMoveVertical;
+      blockZ += (double) (MathHelper.sin(leftRightRadian) * blockMoveHorizontal);
 
-      this.field_75046_d[k1] = nextIntersectionHeight * nextIntersectionHeight;
-    }
-
-    for (; currentY < targetY; ++currentY) {
-      double roomWidth = 1.5D + (double) (MathHelper.sin((float) currentY * (float) Math.PI / (float) targetY) * scale * 1.0F);
-      double roomHeight = roomWidth * scaleHeight;
-      roomWidth *= (double) random.nextFloat() * 0.25D + 0.75D;
-      roomHeight *= (double) random.nextFloat() * 0.25D + 0.75D;
-      float f6 = MathHelper.cos(upDownRadian);
-      float f7 = MathHelper.sin(upDownRadian);
-      blockX += (double) (MathHelper.cos(leftRightRadian) * f6);
-      blockY += (double) f7;
-      blockZ += (double) (MathHelper.sin(leftRightRadian) * f6);
-      upDownRadian *= 0.7F;
-      upDownRadian += upDownChange * 0.05F;
-      leftRightRadian += leftRightChange * 0.05F;
-      upDownChange *= 0.8F;
-      leftRightChange *= 0.5F;
+      upDownRadian *= strongVerticalChange ? 0.92F : 0.7F;
+      upDownRadian += upDownChange * 0.1F;
+      leftRightRadian += leftRightChange * 0.1F;
+      upDownChange *= 0.9F;
+      leftRightChange *= 0.75F;
       upDownChange += (random.nextFloat() - random.nextFloat()) * random.nextFloat() * 2.0F;
       leftRightChange += (random.nextFloat() - random.nextFloat()) * random.nextFloat() * 4.0F;
 
-      if (createFinalRoom || random.nextInt(4) != 0) {
-        double d8 = blockX - chunkCenterX;
-        double d9 = blockZ - chunkCenterZ;
-        double d10 = (double) (targetY - currentY);
-        double d11 = (double) (scale + 2.0F + 16.0F);
+      if (!createFinalRoom && currentY == nextIntersectionHeight && scale > 1.0F && targetY > 0) {
+        this.generateCaveNode(random.nextLong(), chunkX, chunkZ, chunkData, blockX, blockY, blockZ, random.nextFloat() * 0.5F + 0.5F, leftRightRadian - ((float) Math.PI / 2F), upDownRadian / 3.0F, currentY, targetY, 1.0D);
+        this.generateCaveNode(random.nextLong(), chunkX, chunkZ, chunkData, blockX, blockY, blockZ, random.nextFloat() * 0.5F + 0.5F, leftRightRadian + ((float) Math.PI / 2F), upDownRadian / 3.0F, currentY, targetY, 1.0D);
+        return;
+      }
 
-        if (d8 * d8 + d9 * d9 - d10 * d10 > d11 * d11) {
+      if (createFinalRoom || random.nextInt(4) != 0) {
+        final double distanceX = blockX - chunkCenterX;
+        final double distanceZ = blockZ - chunkCenterZ;
+        final double distanceY = (double) (targetY - currentY);
+        final double maxDistance = (double) (scale + 2.0F + 16.0F);
+
+        if (distanceX * distanceX + distanceZ * distanceZ - distanceY * distanceY > maxDistance * maxDistance) {
           return;
         }
 
@@ -93,6 +88,7 @@ public class NewDawnMapGenRavine extends MapGenRavine {
           final int zHigh = TwoMath.withinBounds(MathHelper.floor_double(blockZ + roomWidth) - chunkZ * 16 + 1, 0, 16);
 
           boolean underWater = false;
+
           for (int x = xLow; !underWater && x < xHigh; ++x) {
             for (int z = zLow; !underWater && z < zHigh; ++z) {
               for (int y = yHigh + 1; !underWater && y >= yLow - 1; --y) {
@@ -113,23 +109,23 @@ public class NewDawnMapGenRavine extends MapGenRavine {
 
           if (!underWater) {
             for (int x = xLow; x < xHigh; ++x) {
-              double d12 = ((double) (x + chunkX * 16) + 0.5D - blockX) / roomWidth;
+              final double xScale = ((double) (x + chunkX * 16) + 0.5D - blockX) / roomWidth;
 
               for (int z = zLow; z < zHigh; ++z) {
-                double d13 = ((double) (z + chunkZ * 16) + 0.5D - blockZ) / roomWidth;
+                final double zScale = ((double) (z + chunkZ * 16) + 0.5D - blockZ) / roomWidth;
                 int index = (x * 16 + z) * worldHeight + yHigh;
-                boolean flag2 = false;
+                boolean foundTop = false;
 
-                if (d12 * d12 + d13 * d13 < 1.0D) {
+                if (xScale * xScale + zScale * zScale < 1.0D) {
                   for (int y = yHigh - 1; y >= yLow; --y) {
-                    double yScale = ((double) y + 0.5D - blockY) / roomHeight;
+                    final double yScale = ((double) y + 0.5D - blockY) / roomHeight;
 
-                    if ((d12 * d12 + d13 * d13) * (double) this.field_75046_d[y] + yScale * yScale / 6.0D < 1.0D) {
+                    if (yScale > -0.7D && xScale * xScale + yScale * yScale + zScale * zScale < 1.0D) {
                       if (isTopBlock(chunkData, index, x, y, z, chunkX, chunkZ)) {
-                        flag2 = true;
+                        foundTop = true;
                       }
 
-                      digBlock(chunkData, index, x, y, z, chunkX, chunkZ, flag2);
+                      digBlock(chunkData, index, x, y, z, chunkX, chunkZ, foundTop);
                     }
 
                     --index;
