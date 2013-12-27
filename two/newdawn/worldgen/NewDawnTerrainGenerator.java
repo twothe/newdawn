@@ -412,7 +412,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     final byte[] chunkBiomes = chunk.getBiomeArray();
     for (int x = 0; x < ChunkInformation.CHUNK_SIZE_X; ++x) {
       for (int z = 0; z < ChunkInformation.CHUNK_SIZE_Z; ++z) {
-        biomeID = chunkBiomes[x + z * ChunkInformation.CHUNK_SIZE_X];
+        biomeID = chunkBiomes[x + z * ChunkInformation.CHUNK_SIZE_X] & 0xFF;
         blockBiome = BiomeGenBase.biomeList[biomeID];
         if (blockBiome.getEnableSnow()) {
           height = chunk.getHeightValue(x, z);
