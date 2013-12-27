@@ -1,6 +1,6 @@
 /*
  */
-package two.newdawn.worldgen;
+package two.newdawn.API;
 
 import java.util.HashMap;
 
@@ -18,28 +18,33 @@ import java.util.HashMap;
 public class ChunkInformation {
 
   /* The maximum world height. You must not exceed it, Minecraft forbids it! */
-  protected static final int WORLD_HEIGHT = 256;
-  /* Global temperature thresholds */
-  public static final double TEMPERATURE_FREEZING = -0.5;
-  public static final double TEMPERATURE_HOT = 0.5;
-  /* Global humidity thresholds */
-  public static final double HUMIDITY_SPARSE = -0.5;
-  public static final double HUMIDITY_WET = 0.5;
-  /* A humidity level at which woodland is suggested */
-  public final double MIN_HUMIDITY_WOODLAND = 0.18;
+  public static final int WORLD_HEIGHT = 256;
   /* The length of each side of a chunk */
-  protected static final int CHUNK_SIZE_X = 16;
-  protected static final int CHUNK_SIZE_Z = 16;
+  public static final int CHUNK_SIZE_X = 16;
+  public static final int CHUNK_SIZE_Z = 16;
   /* The 2D area of a chunk, which is equal to the map sizes */
-  protected static final int CHUNK_SIZE_XZ = CHUNK_SIZE_X * CHUNK_SIZE_Z;
+  public static final int CHUNK_SIZE_XZ = CHUNK_SIZE_X * CHUNK_SIZE_Z;
+  /* Bit-mask values for conversion between world and chunk space */
+  protected static final int LENGTH_MASK = CHUNK_SIZE_X - 1;
+
+  /**
+   * Converts from block-/world-space into chunk-space.
+   * All internal maps of this class convert using this function.
+   *
+   * @param blockX the block x-coordinate in world space.
+   * @param blockZ the block z-coordinate in world space.
+   * @return the chunk-space coordinate for the given world-space block coordinate
+   */
+  public static int blockToChunk(final int blockX, final int blockZ) {
+    return ((blockX & LENGTH_MASK) + (blockZ & LENGTH_MASK) * CHUNK_SIZE_X); // multiplication is surprisingly faster than bit-shift
+  }
   /**
    * Public data values
    */
   /* The chunk coordinate in chunk-space */
   public final int chunkX, chunkZ;
-  /* The height of the first block above ocean water.<br>
-   * This means that groundLevel - 1 is either a water block (ocean) or a non-water block (shore). */
-  public final int groundLevel;
+  /* Basic information and thresholds */
+  public final WorldBaseValues baseValues;
   /* The height-map of this chunk, where height is the first air block */
   public final int[] height;
   /* The region-height-map of this chunk */
@@ -58,25 +63,20 @@ public class ChunkInformation {
   public final float averageHumidity;
   /* Additional information. Intended for mods that need to store any kind of extra data for whatever reason. */
   public final HashMap<String, Object> additionalInformation = new HashMap<String, Object>();
-  /* 
-   * Internal values. 
-   */
-  protected final int lengthMapping;
 
   /**
    * Called internally by the terrain generation function. Mods receive the result.
    */
-  public ChunkInformation(final int chunkX, final int chunkZ, final int groundLevel,
+  public ChunkInformation(final int chunkX, final int chunkZ, final WorldBaseValues basicInfo,
           final int[] height, final int[] regionHeight, final boolean[] isMountain, final float[] temperature, final float[] humidity) {
     this.chunkX = chunkX;
     this.chunkZ = chunkZ;
     this.height = height;
     this.regionHeight = regionHeight;
     this.isMountain = isMountain;
-    this.groundLevel = groundLevel;
+    this.baseValues = basicInfo;
     this.temperature = temperature;
     this.humidity = humidity;
-    this.lengthMapping = CHUNK_SIZE_X - 1; // assuming that length is a power of 2
 
     int avgHeight = 0;
     for (int i : this.height) {
@@ -100,16 +100,16 @@ public class ChunkInformation {
   /**
    * Returns the height of this chunk at the given block position.
    * The height is y-coordinate of the first non-terrain block (either air or water).<br>
-   * If height &gt;= groundLevel, a player can walk at this position and the block
+   * If height &gt;= basicInfo.groundLevel, a player can walk at this position and the block
    * at height - 1 is a solid (non-water) block.<br>
-   * If height &lt; groundLevel, the position is under water.
+   * If height &lt; basicInfo.groundLevel, the position is under water.
    *
    * @param blockX the block x-coordinate in world space.
    * @param blockZ the block z-coordinate in world space.
    * @return the height of this chunk at the given block position.
    */
   public int getHeight(final int blockX, final int blockZ) {
-    return height[(blockX & lengthMapping) + (blockZ & lengthMapping) * CHUNK_SIZE_X];
+    return height[blockToChunk(blockX, blockZ)];
   }
 
   /**
@@ -124,18 +124,19 @@ public class ChunkInformation {
    * @return the height of the region at the given block position.
    */
   public int getRegionHeight(final int blockX, final int blockZ) {
-    return regionHeight[(blockX & lengthMapping) + (blockZ & lengthMapping) * CHUNK_SIZE_X];
+    return regionHeight[blockToChunk(blockX, blockZ)];
   }
 
   /**
    * Returns whether or not the terrain is part of a huge mountain at the given block position.
+   * Note: Parts of mountains can as well be under water.
    *
    * @param blockX the block x-coordinate in world space.
    * @param blockZ the block z-coordinate in world space.
    * @return whether or not the terrain is part of a huge mountain at the given block position.
    */
   public boolean isMountain(final int blockX, final int blockZ) {
-    return isMountain[(blockX & lengthMapping) + (blockZ & lengthMapping) * CHUNK_SIZE_X];
+    return isMountain[blockToChunk(blockX, blockZ)];
   }
 
   /**
@@ -148,7 +149,7 @@ public class ChunkInformation {
    * @return the temperature at the given block position.
    */
   public float getTemperature(final int blockX, final int blockZ) {
-    return temperature[(blockX & lengthMapping) + (blockZ & lengthMapping) * CHUNK_SIZE_X];
+    return temperature[blockToChunk(blockX, blockZ)];
   }
 
   /**
@@ -161,7 +162,7 @@ public class ChunkInformation {
    * @return the humidity at the given block position.
    */
   public float getHumidity(final int blockX, final int blockZ) {
-    return humidity[(blockX & lengthMapping) + (blockZ & lengthMapping) * CHUNK_SIZE_X];
+    return humidity[blockToChunk(blockX, blockZ)];
   }
 
   /**
@@ -172,7 +173,7 @@ public class ChunkInformation {
    * @return whether or not the given block position has a temperature that is considered hot.
    */
   public boolean isTemperatureHot(final int blockX, final int blockZ) {
-    return (getTemperature(blockX, blockZ) >= TEMPERATURE_HOT);
+    return (getTemperature(blockX, blockZ) >= baseValues.temperatureHot);
   }
 
   /**
@@ -184,7 +185,7 @@ public class ChunkInformation {
    * @return whether or not the given block position has a temperature that is considered hot, if the given modifier is added.
    */
   public boolean isTemperatureHot(final int blockX, final int blockZ, final float modifier) {
-    return ((getTemperature(blockX, blockZ) + modifier) >= TEMPERATURE_HOT);
+    return ((getTemperature(blockX, blockZ) + modifier) >= baseValues.temperatureHot);
   }
 
   /**
@@ -195,7 +196,7 @@ public class ChunkInformation {
    * @return whether or not the given block position has a temperature that is considered freezing cold.
    */
   public boolean isTemperatureFreezing(final int blockX, final int blockZ) {
-    return (getTemperature(blockX, blockZ) <= TEMPERATURE_FREEZING);
+    return (getTemperature(blockX, blockZ) <= baseValues.temperatureFreezing);
   }
 
   /**
@@ -207,7 +208,7 @@ public class ChunkInformation {
    * @return whether or not the given block position has a temperature that is considered freezing cold, if the given modifier is added.
    */
   public boolean isTemperatureFreezing(final int blockX, final int blockZ, final float modifier) {
-    return ((getTemperature(blockX, blockZ) + modifier) <= TEMPERATURE_FREEZING);
+    return ((getTemperature(blockX, blockZ) + modifier) <= baseValues.temperatureFreezing);
   }
 
   /**
@@ -219,7 +220,7 @@ public class ChunkInformation {
    */
   public boolean isTemperatureMedium(final int blockX, final int blockZ) {
     final float blockTemperature = getTemperature(blockX, blockZ);
-    return ((blockTemperature > TEMPERATURE_FREEZING) && (blockTemperature < TEMPERATURE_HOT));
+    return ((blockTemperature > baseValues.temperatureFreezing) && (blockTemperature < baseValues.temperatureHot));
   }
 
   /**
@@ -232,7 +233,7 @@ public class ChunkInformation {
    */
   public boolean isTemperatureMedium(final int blockX, final int blockZ, final float modifier) {
     final float blockTemperature = getTemperature(blockX, blockZ) + modifier;
-    return ((blockTemperature > TEMPERATURE_FREEZING) && (blockTemperature < TEMPERATURE_HOT));
+    return ((blockTemperature > baseValues.temperatureFreezing) && (blockTemperature < baseValues.temperatureHot));
   }
 
   /**
@@ -243,7 +244,7 @@ public class ChunkInformation {
    * @return whether or not the given block position has a humidity that is considered wet.
    */
   public boolean isHumidityWet(final int blockX, final int blockZ) {
-    return (getHumidity(blockX, blockZ) >= HUMIDITY_WET);
+    return (getHumidity(blockX, blockZ) >= baseValues.humidityWet);
   }
 
   /**
@@ -255,7 +256,7 @@ public class ChunkInformation {
    * @return whether or not the given block position has a humidity that is considered wet, if the given modifier is added.
    */
   public boolean isHumidityWet(final int blockX, final int blockZ, final float modifier) {
-    return ((getHumidity(blockX, blockZ) + modifier) >= HUMIDITY_WET);
+    return ((getHumidity(blockX, blockZ) + modifier) >= baseValues.humidityWet);
   }
 
   /**
@@ -266,7 +267,7 @@ public class ChunkInformation {
    * @return whether or not the given block position has a humidity that is considered sparse.
    */
   public boolean isHumiditySparse(final int blockX, final int blockZ) {
-    return (getHumidity(blockX, blockZ) <= HUMIDITY_SPARSE);
+    return (getHumidity(blockX, blockZ) <= baseValues.humiditySparse);
   }
 
   /**
@@ -278,7 +279,7 @@ public class ChunkInformation {
    * @return whether or not the given block position has a humidity that is considered sparse, if the given modifier is added.
    */
   public boolean isHumiditySparse(final int blockX, final int blockZ, final float modifier) {
-    return ((getHumidity(blockX, blockZ) + modifier) <= HUMIDITY_SPARSE);
+    return ((getHumidity(blockX, blockZ) + modifier) <= baseValues.humiditySparse);
   }
 
   /**
@@ -290,7 +291,7 @@ public class ChunkInformation {
    */
   public boolean isHumidityMedium(final int blockX, final int blockZ) {
     final float blockHumidity = getHumidity(blockX, blockZ);
-    return ((blockHumidity > HUMIDITY_SPARSE) && (blockHumidity < HUMIDITY_WET));
+    return ((blockHumidity > baseValues.humiditySparse) && (blockHumidity < baseValues.humidityWet));
   }
 
   /**
@@ -303,31 +304,31 @@ public class ChunkInformation {
    */
   public boolean isHumidityMedium(final int blockX, final int blockZ, final float modifier) {
     final float blockHumidity = getHumidity(blockX, blockZ) + modifier;
-    return ((blockHumidity > HUMIDITY_SPARSE) && (blockHumidity < HUMIDITY_WET));
+    return ((blockHumidity > baseValues.humiditySparse) && (blockHumidity < baseValues.humidityWet));
   }
 
   /**
-   * Returns whether or not the given block position has a humidity that is sufficient for woodland.
+   * Returns whether or not the given block position has parameters that suggest woodland.
    * The threshold is an arbitrary choice that causes the world to have a reasonable amount of woodland.
    *
-   * @param blockXthe block x-coordinate in world space.
+   * @param blockX the block x-coordinate in world space.
    * @param blockZ the block z-coordinate in world space.
-   * @return whether or not the given block position has a humidity that is sufficient for woodland.
+   * @return whether or not the given block position has parameters that suggest woodland.
    */
-  public boolean isHumidityWoodland(final int blockX, final int blockZ) {
-    return (getHumidity(blockX, blockZ) >= MIN_HUMIDITY_WOODLAND);
+  public boolean isWoodland(final int blockX, final int blockZ) {
+    return (getHumidity(blockX, blockZ) >= baseValues.minHumidityWoodland);
   }
 
   /**
-   * Returns whether or not the given block position has a humidity that is sufficient for woodland, if the given modifier is added.
+   * Returns whether or not the given block position has parameters that suggest woodland, if the given modifier is added.
    * The threshold is an arbitrary choice that causes the world to have a reasonable amount of woodland.
    *
-   * @param blockXthe block x-coordinate in world space.
+   * @param blockX the block x-coordinate in world space.
    * @param blockZ the block z-coordinate in world space.
-   * @return whether or not the given block position has a humidity that is sufficient for woodland, if the given modifier is added.
+   * @return whether or not the given block position has parameters that suggest woodland, if the given modifier is added.
    */
-  public boolean isHumidityWoodland(final int blockX, final int blockZ, final float modifier) {
-    return (getHumidity(blockX, blockZ) + modifier >= MIN_HUMIDITY_WOODLAND);
+  public boolean isWoodland(final int blockX, final int blockZ, final float modifier) {
+    return (getHumidity(blockX, blockZ) + modifier >= baseValues.minHumidityWoodland);
   }
 
   /**
@@ -338,7 +339,7 @@ public class ChunkInformation {
    * @return whether or not a given block position is exactly at ground level.
    */
   public boolean isGroundLevel(final int blockX, final int blockZ) {
-    return (getHeight(blockX, blockZ) == groundLevel);
+    return (getHeight(blockX, blockZ) == baseValues.groundLevel);
   }
 
   /**
@@ -349,7 +350,7 @@ public class ChunkInformation {
    * @return whether or not a given block position is above sea level.
    */
   public boolean isAboveSeaLevel(final int blockX, final int blockZ) {
-    return (getHeight(blockX, blockZ) >= groundLevel);
+    return (getHeight(blockX, blockZ) >= baseValues.groundLevel);
   }
 
   /**
@@ -361,7 +362,7 @@ public class ChunkInformation {
    * @return whether or not a given block position is below or at sea level.
    */
   public boolean isBelowGroundLevel(final int blockX, final int blockZ) {
-    return (getHeight(blockX, blockZ) < groundLevel);
+    return (getHeight(blockX, blockZ) < baseValues.groundLevel);
   }
 
   /**
@@ -373,7 +374,7 @@ public class ChunkInformation {
    * @return if the given block position is deep water.
    */
   public boolean isDeepWater(final int blockX, final int blockZ) {
-    return (getHeight(blockX, blockZ) + 1 < groundLevel);
+    return (getHeight(blockX, blockZ) + 1 < baseValues.groundLevel);
   }
 
   /**
@@ -386,7 +387,7 @@ public class ChunkInformation {
    * @return if the given block position is shallow water.
    */
   public boolean isShallowWater(final int blockX, final int blockZ) {
-    return (getHeight(blockX, blockZ) + 1 == groundLevel);
+    return (getHeight(blockX, blockZ) + 1 == baseValues.groundLevel);
   }
 
   /**
@@ -399,7 +400,7 @@ public class ChunkInformation {
    */
   public boolean isGroundLevelOrShallowWater(final int blockX, final int blockZ) {
     final int blockHeight = getHeight(blockX, blockZ);
-    return ((blockHeight == groundLevel) || (blockHeight + 1 == groundLevel));
+    return ((blockHeight == baseValues.groundLevel) || (blockHeight + 1 == baseValues.groundLevel));
   }
 
   /**
