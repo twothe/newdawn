@@ -55,12 +55,18 @@ public class ChunkInformation {
   public final float[] temperature;
   /* The humidity-map of this chunk */
   public final float[] humidity;
-  /* The average height of this chunk */
+  /* Statistical height information of this chunk. Height is the first air block above terrain */
+  public final int lowestHeight;
   public final int averageHeight;
-  /* The average temperature of this chunk */
+  public final int highestHeight;
+  /* Statistical temperature information of this chunk */
+  public final float lowestTemperature;
   public final float averageTemperature;
-  /* The average humidity of this chunk */
+  public final float highestTemperature;
+  /* Statistical humidity information of this chunk */
+  public final float lowestHumidity;
   public final float averageHumidity;
+  public final float highestHumidity;
   /* Additional information. Intended for mods that need to store any kind of extra data for whatever reason. */
   public final HashMap<String, Object> additionalInformation = new HashMap<String, Object>();
 
@@ -78,23 +84,41 @@ public class ChunkInformation {
     this.temperature = temperature;
     this.humidity = humidity;
 
+    int lowHeight = Integer.MAX_VALUE;
+    int highHight = Integer.MIN_VALUE;
     int avgHeight = 0;
-    for (int i : this.height) {
-      avgHeight += i;
+    for (int h : this.height) {
+      avgHeight += h;
+      lowHeight = Math.min(h, lowHeight);
+      highHight = Math.max(h, highHight);
     }
+    lowestHeight = lowHeight;
     averageHeight = Math.round(((float) avgHeight) / ((float) height.length));
+    highestHeight = highHight;
 
+    float lowTemperature = this.temperature[0];
     float avgTemperature = 0.0f;
-    for (float f : this.temperature) {
-      avgTemperature += f;
+    float highTemperature = this.temperature[0];
+    for (float t : this.temperature) {
+      avgTemperature += t;
+      lowTemperature = Math.min(t, lowTemperature);
+      highTemperature = Math.max(t, highTemperature);
     }
+    lowestTemperature = lowTemperature;
     averageTemperature = avgTemperature / ((float) temperature.length);
+    highestTemperature = highTemperature;
 
+    float lowHumidity = this.humidity[0];
     float avgHumidity = 0.0f;
-    for (float f : this.humidity) {
-      avgHumidity += f;
+    float highHumidity =this.humidity[0];
+    for (float h : this.humidity) {
+      avgHumidity += h;
+      lowHumidity = Math.min(h, lowHumidity);
+      highHumidity = Math.max(h, highHumidity);
     }
+    lowestHumidity = lowHumidity;
     averageHumidity = avgHumidity / ((float) humidity.length);
+    highestHumidity = highHumidity;
   }
 
   /**
@@ -125,6 +149,25 @@ public class ChunkInformation {
    */
   public int getRegionHeight(final int blockX, final int blockZ) {
     return regionHeight[blockToChunk(blockX, blockZ)];
+  }
+
+  /**
+   * Returns how much elevation is added by local area height.
+   * The region height is part of the height composition and describes the general
+   * height of a given position. The difference between height an region height
+   * is the amount of height added by local hills or similar.
+   *
+   * @param blockX the block x-coordinate in world space.
+   * @param blockZ the block z-coordinate in world space.
+   * @return how much elevation is added by local area height.
+   */
+  public int getElevation(final int blockX, final int blockZ) {
+    final int heightRegion = getRegionHeight(blockX, blockZ);
+    if (heightRegion >= 0) {
+      return getHeight(blockX, blockZ) - heightRegion;
+    } else {
+      return 0;
+    }
   }
 
   /**

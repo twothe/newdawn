@@ -1,4 +1,4 @@
-package two.newdawn.noise;
+package two.newdawn.API.noise;
 
 import java.util.Random;
 

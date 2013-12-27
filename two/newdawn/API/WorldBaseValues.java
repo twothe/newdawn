@@ -3,6 +3,16 @@
 package two.newdawn.API;
 
 /**
+ * World base values to be used for extended biome selection.
+ *
+ * Whenever possible the information in ChunkInformation should be used, but if
+ * required the location parameters can be compared to the values below.
+ *
+ * Temperature and humidity usually range between -1 and 1, but based on the terrain
+ * they can exceed these boundaries.
+ *
+ * Each world can have its own and very different base values.
+ *
  * @author Two
  */
 public class WorldBaseValues {
@@ -19,9 +29,12 @@ public class WorldBaseValues {
    * This means that groundLevel - 1 is either a water block (ocean) or a non-water block (shore). */
   public final int groundLevel;
 
-  public WorldBaseValues(final float temperatureFreezing, final float temperatureHot, 
-          final float humiditySparse, final float humidityWet, 
-          final float minHumidityWoodland, 
+  /**
+   * Created by the NewDawn mod during player login.
+   */
+  public WorldBaseValues(final float temperatureFreezing, final float temperatureHot,
+          final float humiditySparse, final float humidityWet,
+          final float minHumidityWoodland,
           final int groundLevel) {
     this.temperatureFreezing = temperatureFreezing;
     this.temperatureHot = temperatureHot;

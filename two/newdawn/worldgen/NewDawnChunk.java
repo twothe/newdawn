@@ -14,7 +14,7 @@ import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
  */
 public class NewDawnChunk extends Chunk {
 
-  public NewDawnChunk(World world, byte[] chunkData, int chunkX, int chunkZ) {
+  public NewDawnChunk(final World world, final byte[] chunkData, final int chunkX, final int chunkZ) {
     super(world, chunkX, chunkZ);
 
     final ExtendedBlockStorage[] storageArrays = new ExtendedBlockStorage[16];
