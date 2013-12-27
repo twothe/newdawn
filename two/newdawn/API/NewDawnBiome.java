@@ -12,7 +12,12 @@ import net.minecraft.world.biome.BiomeGenBase;
  * During world creation each X/Z coordinate is filled from 0 to <i>height</i>
  * using blocks in this order:<br>
  * bedrock &lt; ground block &lt; filler block &lt; top block &lt; air<br>
- * Where the filler block is a random amount between 1 and 4.
+ * Where the filler block is a random amount between 1 and 4.<br>
+ * <br>
+ * The benefit of using this intermediate biome class is that you can create any number of
+ * biomes based on a vanilla biome without having to register a new biome type,
+ * as long as only the blocks are changed. See the VanillaPlainsSelector for
+ * a good example.
  *
  * @author Two
  */
