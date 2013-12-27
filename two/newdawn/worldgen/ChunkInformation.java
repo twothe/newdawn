@@ -7,8 +7,8 @@ import java.util.HashMap;
 /**
  * This class collects chunk information during generation and is used to define the biomes later.
  *
- * Mods can read all these values to decide which biome is selected at a given world position.
- *
+ * Mods can read all these values to decide which biome is selected at a given world position.<br>
+ * <br>
  * Mods are allowed to modify these values, but only if there is a good reason to.
  * Keep in mind that in this way of generation the terrain, these information define
  * the biome, and not the other way around.
@@ -25,6 +25,8 @@ public class ChunkInformation {
   /* Global humidity thresholds */
   public static final double HUMIDITY_SPARSE = -0.5;
   public static final double HUMIDITY_WET = 0.5;
+  /* A humidity level at which woodland is suggested */
+  public final double MIN_HUMIDITY_WOODLAND = 0.18;
   /* The length of each side of a chunk */
   protected static final int CHUNK_SIZE_X = 16;
   protected static final int CHUNK_SIZE_Z = 16;
@@ -35,7 +37,7 @@ public class ChunkInformation {
    */
   /* The chunk coordinate in chunk-space */
   public final int chunkX, chunkZ;
-  /* The height of the first block above ocean water. 
+  /* The height of the first block above ocean water.<br>
    * This means that groundLevel - 1 is either a water block (ocean) or a non-water block (shore). */
   public final int groundLevel;
   /* The height-map of this chunk, where height is the first air block */
@@ -97,6 +99,10 @@ public class ChunkInformation {
 
   /**
    * Returns the height of this chunk at the given block position.
+   * The height is y-coordinate of the first non-terrain block (either air or water).<br>
+   * If height &gt;= groundLevel, a player can walk at this position and the block
+   * at height - 1 is a solid (non-water) block.<br>
+   * If height &lt; groundLevel, the position is under water.
    *
    * @param blockX the block x-coordinate in world space.
    * @param blockZ the block z-coordinate in world space.
@@ -128,7 +134,7 @@ public class ChunkInformation {
    * @param blockZ the block z-coordinate in world space.
    * @return whether or not the terrain is part of a huge mountain at the given block position.
    */
-  public boolean getIsMountain(final int blockX, final int blockZ) {
+  public boolean isMountain(final int blockX, final int blockZ) {
     return isMountain[(blockX & lengthMapping) + (blockZ & lengthMapping) * CHUNK_SIZE_X];
   }
 
@@ -301,6 +307,30 @@ public class ChunkInformation {
   }
 
   /**
+   * Returns whether or not the given block position has a humidity that is sufficient for woodland.
+   * The threshold is an arbitrary choice that causes the world to have a reasonable amount of woodland.
+   *
+   * @param blockXthe block x-coordinate in world space.
+   * @param blockZ the block z-coordinate in world space.
+   * @return whether or not the given block position has a humidity that is sufficient for woodland.
+   */
+  public boolean isHumidityWoodland(final int blockX, final int blockZ) {
+    return (getHumidity(blockX, blockZ) >= MIN_HUMIDITY_WOODLAND);
+  }
+
+  /**
+   * Returns whether or not the given block position has a humidity that is sufficient for woodland, if the given modifier is added.
+   * The threshold is an arbitrary choice that causes the world to have a reasonable amount of woodland.
+   *
+   * @param blockXthe block x-coordinate in world space.
+   * @param blockZ the block z-coordinate in world space.
+   * @return whether or not the given block position has a humidity that is sufficient for woodland, if the given modifier is added.
+   */
+  public boolean isHumidityWoodland(final int blockX, final int blockZ, final float modifier) {
+    return (getHumidity(blockX, blockZ) + modifier >= MIN_HUMIDITY_WOODLAND);
+  }
+
+  /**
    * Returns whether or not a given block position is exactly at ground level.
    *
    * @param blockX the block x-coordinate in world space.
@@ -336,7 +366,7 @@ public class ChunkInformation {
 
   /**
    * Returns if the given block position is deep water.
-   * A player needs to swim when in water that is considered deep.
+   * A player needs to swim if in water that is considered deep.
    *
    * @param blockX the block x-coordinate in world space.
    * @param blockZ the block z-coordinate in world space.
@@ -348,8 +378,8 @@ public class ChunkInformation {
 
   /**
    * Returns if the given block position is shallow water.
-   * A player can still walk when in water that is considered shallow.
-   * Returns false if isBelowSeaLevel would return false for the given position.
+   * A player can still walk if in water that is considered shallow.<br>
+   * Returns false if the given block position is not below ground level.
    *
    * @param blockX the block x-coordinate in world space.
    * @param blockZ the block z-coordinate in world space.
@@ -357,6 +387,19 @@ public class ChunkInformation {
    */
   public boolean isShallowWater(final int blockX, final int blockZ) {
     return (getHeight(blockX, blockZ) + 1 == groundLevel);
+  }
+
+  /**
+   * Returns if the given block position is either ground level or shallow water.
+   * This is used for biomes that can exist in both cases like swampland.
+   *
+   * @param blockX the block x-coordinate in world space.
+   * @param blockZ the block z-coordinate in world space.
+   * @return if the given block position is either ground level or shallow water.
+   */
+  public boolean isGroundLevelOrShallowWater(final int blockX, final int blockZ) {
+    final int blockHeight = getHeight(blockX, blockZ);
+    return ((blockHeight == groundLevel) || (blockHeight + 1 == groundLevel));
   }
 
   /**

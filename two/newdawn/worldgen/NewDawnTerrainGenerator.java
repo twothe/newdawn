@@ -21,10 +21,12 @@ import net.minecraft.world.gen.MapGenBase;
 import net.minecraft.world.gen.feature.MapGenScatteredFeature;
 import net.minecraft.world.gen.feature.WorldGenDungeons;
 import net.minecraft.world.gen.feature.WorldGenLakes;
+import net.minecraft.world.gen.feature.WorldGenLiquids;
 import net.minecraft.world.gen.structure.MapGenMineshaft;
 import net.minecraft.world.gen.structure.MapGenStronghold;
 import net.minecraft.world.gen.structure.MapGenVillage;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.terraingen.DecorateBiomeEvent.Decorate;
 import static net.minecraftforge.event.terraingen.InitMapGenEvent.EventType.*;
 import net.minecraftforge.event.terraingen.PopulateChunkEvent;
 import static net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate.EventType.DUNGEON;
@@ -48,7 +50,6 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
   protected static final boolean SHOW_MAP_FEATURES = true;
   protected static final boolean SHOW_MAP_DECORATION = true;
   protected static final boolean SHOW_WATER = true;
-  protected final double MIN_HUMIDITY_WOODLAND = 0.18;
   /**
    * Reference to the World object.
    */
@@ -136,16 +137,16 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
    */
   @Override
   public Chunk provideChunk(final int chunkX, final int chunkZ) {
-    timeInfo.start();
+//    timeInfo.start();
     final ChunkInformation chunkInfo = generateChunkInformation(chunkX, chunkZ);
-    timeInfo.stop();
-    System.out.println(timeInfo);
-    timeTerrain.start();
+//    timeInfo.stop();
+//    System.out.println(timeInfo);
+//    timeTerrain.start();
     final byte chunkData[] = new byte[ChunkInformation.CHUNK_SIZE_XZ * ChunkInformation.WORLD_HEIGHT];
     final BiomeGenBase[] generatedBiomes = new BiomeGenBase[ChunkInformation.CHUNK_SIZE_XZ];
     generateNewDawnTerrain(chunkInfo, chunkData, generatedBiomes);
-    timeTerrain.stop();
-    System.out.println(timeTerrain);
+//    timeTerrain.stop();
+//    System.out.println(timeTerrain);
     if (SHOW_MAP_FEATURES) {
       generateMapFeatures(chunkX, chunkZ, chunkData);
     }
@@ -190,7 +191,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
                     * (this.worldNoise.noise(blockX / 41.0, blockZ / 45.0) / 2.0 + 1.0)
                     * (this.worldNoise.noise(blockX / 2.2, blockZ / 2.0) / 38.0 / 2.0 + 1.0);
             hillsHeight = hillsNoiseEffective * 32.0 * this.blockHeight; // the effective height of the hill at this point
-            isMountain[dataPos] = true;
+            isMountain[dataPos] = (hillsHeight > 4); // only if there is actually a reasonable amount added to the height
           }
         }
 
@@ -250,27 +251,26 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
         final int height = chunkInfo.getHeight(blockX, blockZ); // the y of the first air block
         final int regionHeight = chunkInfo.getRegionHeight(blockX, blockZ);
         final float temperature = chunkInfo.getTemperature(blockX, blockZ);
-        final float humidity = chunkInfo.getHumidity(blockX, blockZ);
 
         //--- decide for biome based on humidity, temperature and height -------
         if (chunkInfo.isBelowGroundLevel(blockX, blockZ)) {
-          if ((humidity >= MIN_HUMIDITY_WOODLAND) && !chunkInfo.isTemperatureFreezing(blockX, blockZ) && chunkInfo.isShallowWater(blockX, blockZ)) {
+          if (chunkInfo.isHumidityWoodland(blockX, blockZ) && chunkInfo.isTemperatureMedium(blockX, blockZ) && chunkInfo.isShallowWater(blockX, blockZ)) {
             blockBiome = BiomeGenBase.swampland;
           } else {
             blockBiome = getOceanBiome(temperature);
           }
-        } else if (chunkInfo.getIsMountain(blockX, blockZ)) {
+        } else if (chunkInfo.isMountain(blockX, blockZ)) {
           blockBiome = getHillsBiome(temperature);
         } else {
-          if (humidity >= MIN_HUMIDITY_WOODLAND) {
+          if (chunkInfo.isHumidityWoodland(blockX, blockZ)) {
             if ((regionHeight > 0) && (height - regionHeight >= 24)) {
               blockBiome = getForestHillsBiome(temperature);
-            } else if (!chunkInfo.isTemperatureFreezing(blockX, blockZ) && (chunkInfo.isShallowWater(blockX, blockZ) || chunkInfo.isGroundLevel(blockX, blockZ))) {
+            } else if (chunkInfo.isTemperatureMedium(blockX, blockZ) && chunkInfo.isGroundLevelOrShallowWater(blockX, blockZ)) {
               blockBiome = BiomeGenBase.swampland;
             } else {
               blockBiome = getForestsBiome(temperature);
             }
-          } else if (chunkInfo.isShallowWater(blockX, blockZ) && chunkInfo.isTemperatureHot(blockX, blockZ)) {
+          } else if (chunkInfo.isHumiditySparse(blockX, blockZ) && chunkInfo.isGroundLevelOrShallowWater(blockX, blockZ)) {
             blockBiome = BiomeGenBase.beach;
           } else {
             blockBiome = getPlainsBiome(temperature);
@@ -407,6 +407,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
 
     if (SHOW_MAP_DECORATION) {
       biomegenbase.decorate(this.worldObj, this.seedRandom, blockX, blockZ);
+
       SpawnerAnimals.performWorldGenSpawning(this.worldObj, biomegenbase, blockX + 8, blockZ + 8, 16, 16, this.seedRandom);
     }
 
