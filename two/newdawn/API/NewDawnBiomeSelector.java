@@ -62,9 +62,10 @@ public abstract class NewDawnBiomeSelector implements Comparable<NewDawnBiomeSel
    *
    * @param blockX the world-space block x-coordinate.
    * @param blockZ the world-space block z-coordinate.
+   * @param chunkInfo the chunk information that is in the process of being generated.
    * @return true if this will modify the given location, false otherwise.
    */
-  public boolean modifiesLocation(final int blockX, final int blockZ) {
+  public boolean modifiesLocation(final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
     return false;
   }
 
@@ -89,9 +90,10 @@ public abstract class NewDawnBiomeSelector implements Comparable<NewDawnBiomeSel
    * @param roughness how rough the terrain at the given location is supposed to be.
    * @param currentModification the current modified sum of heights from other selectors.
    * @param isModified whether or not another selector has already modified this location. This is true as soon as any call do modifiesLocation returned true, no matter what this function for the other selector returned.
+   * @param chunkInfo the chunk information that is in the process of being generated.
    * @return the height-modification that will later be added to the base height.
    */
-  public double modifyHeight(final int blockX, final int blockZ, final double baseHeight, final double regionHeight, final double roughness, final double currentModification, final boolean isModified) {
+  public double modifyHeight(final int blockX, final int blockZ, final double baseHeight, final double regionHeight, final double roughness, final double currentModification, final boolean isModified, final ChunkInformation chunkInfo) {
     return 0.0;
   }
 

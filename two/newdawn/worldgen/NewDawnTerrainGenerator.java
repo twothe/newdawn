@@ -184,6 +184,8 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     final float[] temperatureMap = new float[ChunkInformation.CHUNK_SIZE_XZ];
     final float[] humidityMap = new float[ChunkInformation.CHUNK_SIZE_XZ];
 
+    final ChunkInformation result = new ChunkInformation(chunkX, chunkZ, baseValues, heightMap, regionHeightMap, isMountain, temperatureMap, humidityMap);
+
     final int x0 = chunkX << 4;
     final int z0 = chunkZ << 4;
 
@@ -206,8 +208,8 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
         double heightMod = 0.0;
         boolean isModified = false;
         for (final NewDawnBiomeSelector selector : terrainModifiers) {
-          if (selector.modifiesLocation(blockX, blockZ)) {
-            heightMod += selector.modifyHeight(blockX, blockZ, baseHeight, regionHeight, roughness, heightMod, isModified);
+          if (selector.modifiesLocation(blockX, blockZ, result)) {
+            heightMod += selector.modifyHeight(blockX, blockZ, baseHeight, regionHeight, roughness, heightMod, isModified, result);
             isModified = true;
           }
         }
@@ -234,7 +236,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
       }
     }
 
-    return new ChunkInformation(chunkX, chunkZ, baseValues, heightMap, regionHeightMap, isMountain, temperatureMap, humidityMap);
+    return result;
   }
 
   protected void generateNewDawnTerrain(final ChunkInformation chunkInfo, final byte[] chunkData, final BiomeGenBase chunkBiomes[]) {

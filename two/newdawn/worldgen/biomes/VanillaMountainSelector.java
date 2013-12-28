@@ -44,18 +44,19 @@ public class VanillaMountainSelector extends NewDawnBiomeSelector {
   }
 
   @Override
-  public boolean modifiesLocation(int blockX, int blockZ) {
+  public boolean modifiesLocation(int blockX, int blockZ, final ChunkInformation chunkInfo) {
     return (getEffectiveHillsNoise(blockX, blockZ) > 0.0);
   }
 
   @Override
-  public double modifyHeight(final int blockX, final int blockZ, final double baseHeight, final double regionHeight, final double roughness, final double currentModification, final boolean isModified) {
+  public double modifyHeight(final int blockX, final int blockZ, final double baseHeight, final double regionHeight, final double roughness, final double currentModification, final boolean isModified, final ChunkInformation chunkInfo) {
     final double hillsNoiseEffective = getEffectiveHillsNoise(blockX, blockZ);
     final double hillsHeight = (this.hillsNoiseAreaLarge.getNoise(blockX, blockZ) * 0.4
             + this.hillsNoiseAreaSmall.getNoise(blockX, blockZ) * 0.59
             + this.hillsNoiseBlock.getNoise(blockX, blockZ) * 0.01
             + 0.25)
             * hillsNoiseEffective * 32.0 * ChunkInformation.BLOCK_SCALE; // the effective height of the hill at this point
+    chunkInfo.isMountain[ChunkInformation.blockToChunk(blockX, blockZ)] = (hillsHeight > 4);
     return hillsHeight;
   }
 
