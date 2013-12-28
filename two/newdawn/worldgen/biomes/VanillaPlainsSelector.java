@@ -31,11 +31,6 @@ public class VanillaPlainsSelector extends NewDawnBiomeSelector {
   }
 
   @Override
-  public boolean isApplicable(final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
-    return true; // if nothing else fits, there will be plains
-  }
-
-  @Override
   public NewDawnBiome selectBiome(final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
     if (chunkInfo.isTemperatureHot(blockX, blockZ)) {
       return getPlainsHot(blockX, blockZ, chunkInfo);

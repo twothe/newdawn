@@ -26,19 +26,19 @@ public class VanillaWoodlandSelector extends NewDawnBiomeSelector {
   }
 
   @Override
-  public boolean isApplicable(final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
-    return chunkInfo.isWoodland(blockX, blockZ) && (chunkInfo.isAboveSeaLevel(blockX, blockZ) || isSwampLandApplicable(blockX, blockZ, chunkInfo));
-  }
-
-  @Override
   public NewDawnBiome selectBiome(final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
-    if (isSwampLandApplicable(blockX, blockZ, chunkInfo)) {
-      return biomeSwampland;
-    } else if (chunkInfo.getElevation(blockX, blockZ) >= 16) {
-      return getForestHillsBiome(blockX, blockZ, chunkInfo);
-    } else {
-      return getForestsBiome(blockX, blockZ, chunkInfo);
+    if (chunkInfo.isWoodland(blockX, blockZ)) {
+      if (isSwampLandApplicable(blockX, blockZ, chunkInfo)) {
+        return biomeSwampland;
+      } else if (chunkInfo.isAboveSeaLevel(blockX, blockZ)) {
+        if (chunkInfo.getElevation(blockX, blockZ) >= 16) {
+          return getForestHillsBiome(blockX, blockZ, chunkInfo);
+        } else {
+          return getForestsBiome(blockX, blockZ, chunkInfo);
+        }
+      }
     }
+    return null;
   }
 
   protected boolean isSwampLandApplicable(final int blockX, final int blockZ, final ChunkInformation chunkInfo) {

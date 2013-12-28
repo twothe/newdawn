@@ -60,9 +60,11 @@ public class SimplexNoise {  // Simplex noise in 2D, 3D and 4D
    */
   protected final short[] doubledPermutationTable;
   protected final short[] variatedPermutationTable;
+  protected final Random random;
 
   public SimplexNoise(final Random random) {
     final byte[] bytes = new byte[1024];
+    this.random = random;
     random.nextBytes(bytes);
     doubledPermutationTable = new short[bytes.length * 2];
     variatedPermutationTable = new short[doubledPermutationTable.length];
@@ -73,6 +75,10 @@ public class SimplexNoise {  // Simplex noise in 2D, 3D and 4D
     }
     System.arraycopy(doubledPermutationTable, 0, doubledPermutationTable, bytes.length, bytes.length);
     System.arraycopy(variatedPermutationTable, 0, variatedPermutationTable, bytes.length, bytes.length);
+  }
+
+  public Random getRandom() {
+    return random;
   }
 
   public NoiseStretch generateNoiseStretcher(double stretchX, double stretchZ, double offsetX, double offsetZ) {

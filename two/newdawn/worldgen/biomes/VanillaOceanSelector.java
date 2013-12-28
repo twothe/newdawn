@@ -23,18 +23,17 @@ public class VanillaOceanSelector extends NewDawnBiomeSelector {
   }
 
   @Override
-  public boolean isApplicable(final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
-    return chunkInfo.isBelowGroundLevel(blockX, blockZ);
-  }
-
-  @Override
   public NewDawnBiome selectBiome(int blockX, int blockZ, ChunkInformation chunkInfo) {
-    if (chunkInfo.isTemperatureFreezing(blockX, blockZ)) {
-      return biomeFrozenOcean;
-    } else if (chunkInfo.isShallowWater(blockX, blockZ)) {
-      return biomeBeach;
+    if (chunkInfo.isBelowGroundLevel(blockX, blockZ)) {
+      if (chunkInfo.isTemperatureFreezing(blockX, blockZ)) {
+        return biomeFrozenOcean;
+      } else if (chunkInfo.isShallowWater(blockX, blockZ)) {
+        return biomeBeach;
+      } else {
+        return biomeOcean;
+      }
     } else {
-      return biomeOcean;
+      return null;
     }
   }
 }
