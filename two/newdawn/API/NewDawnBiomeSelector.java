@@ -111,7 +111,6 @@ public abstract class NewDawnBiomeSelector implements Comparable<NewDawnBiomeSel
     return null;
   }
 
-
   /**
    * Returns the priority of this selector.
    *

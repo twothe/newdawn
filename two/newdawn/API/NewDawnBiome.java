@@ -80,42 +80,97 @@ public class NewDawnBiome {
     this.groundBlockID = (byte) (groundBlockID & 0xFF);
   }
 
-  public void fillLocation(final SimplexNoise worldNoise, final byte[] chunkData, int dataPos, final int height, final int fillerHeight, final int blockX, final int blockZ, final NewDawnBiome blockBiome, final ChunkInformation chunkInfo) {
-    final int bedrockHeight = fillBedrock(worldNoise, chunkData, dataPos, height, fillerHeight, blockX, blockZ, blockBiome, chunkInfo);
-    fillGround(worldNoise, chunkData, dataPos, height, bedrockHeight, fillerHeight, blockX, blockZ, blockBiome, chunkInfo);
+  /**
+   * Fills the given X/Z coordinate with ground blocks.
+   *
+   * Called for each X/Z coordinate in each chunk on the biome that defines the specific coordinate.
+   *
+   * @param worldNoise the world's noise.
+   * @param chunkData the chunk data to write to.
+   * @param dataPos the data position to start writing. Limit is dataPos + ChunkInformation.WORLD_HEIGHT.
+   * @param height the calculated height for this coordinate.
+   * @param fillerHeight the height of the blocks between solid ground and top block.
+   * @param blockX the x-coordinate in world-space.
+   * @param blockZ the x-coordinate in world-space.
+   * @param chunkInfo the chunk information for the chunk of this coordinate.
+   */
+  public void fillLocation(final SimplexNoise worldNoise, final byte[] chunkData, int dataPos, final int height, final int fillerHeight, final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
+    final int bedrockHeight = fillBedrock(worldNoise, chunkData, dataPos, height, fillerHeight, blockX, blockZ, chunkInfo);
+    fillGround(worldNoise, chunkData, dataPos, height, bedrockHeight, fillerHeight, blockX, blockZ, chunkInfo);
 
     if (chunkInfo.isBelowGroundLevel(blockX, blockZ)) { // this this part of the world below ocean level?
-      fillWater(worldNoise, chunkData, dataPos, height, fillerHeight, blockX, blockZ, blockBiome, chunkInfo);
+      fillWater(worldNoise, chunkData, dataPos, height, fillerHeight, blockX, blockZ, chunkInfo);
     }
   }
 
-  protected int fillBedrock(final SimplexNoise worldNoise, final byte[] chunkData, int dataPos, final int height, final int fillerHeight, final int blockX, final int blockZ, final NewDawnBiome blockBiome, final ChunkInformation chunkInfo) {
+  /**
+   * Fills the given X/Z coordinate with bedrock.
+   *
+   * @param worldNoise the world's noise.
+   * @param chunkData the chunk data to write to.
+   * @param dataPos the data position to start writing. Limit is dataPos + ChunkInformation.WORLD_HEIGHT.
+   * @param height the calculated height for this coordinate.
+   * @param fillerHeight the height of the blocks between solid ground and top block.
+   * @param blockX the x-coordinate in world-space.
+   * @param blockZ the x-coordinate in world-space.
+   * @param chunkInfo the chunk information for the chunk of this coordinate.
+   * @return the height of the bedrock.
+   */
+  protected int fillBedrock(final SimplexNoise worldNoise, final byte[] chunkData, int dataPos, final int height, final int fillerHeight, final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
     final byte bedrockID = getBlockID(Block.bedrock);
     final int bedrockHeight = Math.min(height, 5);
-    chunkData[dataPos] = bedrockID;
+    chunkData[dataPos] = bedrockID; // in all cases: lowest level is solid bedrock
     for (int i = 1; i < bedrockHeight; ++i) {
-      chunkData[dataPos + i] = worldNoise.noise(blockX, i, blockZ) <= 0.0 ? bedrockID : blockBiome.groundBlockID; // bedrock mixed with some noise
+      chunkData[dataPos + i] = worldNoise.noise(blockX, i, blockZ) <= 0.0 ? bedrockID : this.groundBlockID; // bedrock mixed with some noise
     }
     return bedrockHeight;
   }
 
-  protected void fillGround(final SimplexNoise worldNoise, final byte[] chunkData, int dataPos, final int height, final int bedrockHeight, final int fillerHeight, final int blockX, final int blockZ, final NewDawnBiome blockBiome, final ChunkInformation chunkInfo) {
+  /**
+   * Fills the ground level (from bedrock to top) for the given X/Z coordinate.
+   *
+   * @param worldNoise the world's noise.
+   * @param chunkData the chunk data to write to.
+   * @param dataPos the data position to start writing. Limit is dataPos + ChunkInformation.WORLD_HEIGHT.
+   * @param height the calculated height for this coordinate (the first air block).
+   * @param bedrockHeight the calculated bedrock-height for this coordinate.
+   * @param fillerHeight the height of the blocks between solid ground and top block.
+   * @param blockX the x-coordinate in world-space.
+   * @param blockZ the x-coordinate in world-space.
+   * @param chunkInfo the chunk information for the chunk of this coordinate.
+   */
+  protected void fillGround(final SimplexNoise worldNoise, final byte[] chunkData, int dataPos, final int height, final int bedrockHeight, final int fillerHeight, final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
     if (fillerHeight > bedrockHeight) {
-      Arrays.fill(chunkData, dataPos + bedrockHeight, dataPos + fillerHeight, blockBiome.groundBlockID); // bedrock -> almost at top
-      Arrays.fill(chunkData, dataPos + fillerHeight, dataPos + height - 1, blockBiome.fillerBlockID); // almost at top -> top
-      if (blockBiome.fillerBlockID == getBlockID(Block.sand)) {
-        Arrays.fill(chunkData, dataPos + fillerHeight, dataPos + (height - 1 + fillerHeight) / 2, getBlockID(Block.sandStone)); // ad some sandstone so all the sand won't wall into caves
+      Arrays.fill(chunkData, dataPos + bedrockHeight, dataPos + fillerHeight, this.groundBlockID); // bedrock -> almost at top
+      Arrays.fill(chunkData, dataPos + fillerHeight, dataPos + height - 1, this.fillerBlockID); // almost at top -> top
+      if (this.fillerBlockID == getBlockID(Block.sand)) {
+        Arrays.fill(chunkData, dataPos + fillerHeight, dataPos + (height - 1 + fillerHeight) / 2, getBlockID(Block.sandStone)); // add some sandstone
       }
     } else {
-      Arrays.fill(chunkData, dataPos + bedrockHeight, dataPos + height - 1, blockBiome.groundBlockID); // special case: world height is almost at bedrock level
+      Arrays.fill(chunkData, dataPos + bedrockHeight, dataPos + height - 1, this.groundBlockID); // special case: world height is almost at bedrock level
     }
-    chunkData[dataPos + height - 1] = blockBiome.topBlockID; // top block by biome and modifiers    
+    chunkData[dataPos + height - 1] = this.topBlockID; // top block of this biome    
   }
 
-  protected void fillWater(final SimplexNoise worldNoise, final byte[] chunkData, int dataPos, final int height, final int fillerHeight, final int blockX, final int blockZ, final NewDawnBiome blockBiome, final ChunkInformation chunkInfo) {
-    if (blockBiome.topBlockID == Block.grass.blockID) {
+  /**
+   * Fills the given X/Z coordinate with water.
+   *
+   * This is called only, if the coordinate is below ground level. Water should
+   * be filled till ground level.
+   *
+   * @param worldNoise the world's noise.
+   * @param chunkData the chunk data to write to.
+   * @param dataPos the data position to start writing. Limit is dataPos + ChunkInformation.WORLD_HEIGHT.
+   * @param height the calculated height for this coordinate.
+   * @param fillerHeight the height of the blocks between solid ground and top block.
+   * @param blockX the x-coordinate in world-space.
+   * @param blockZ the x-coordinate in world-space.
+   * @param chunkInfo the chunk information for the chunk of this coordinate.
+   */
+  protected void fillWater(final SimplexNoise worldNoise, final byte[] chunkData, int dataPos, final int height, final int fillerHeight, final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
+    if (this.topBlockID == Block.grass.blockID) {
       chunkData[dataPos + height - 1] = getBlockID(Block.dirt); // fixes underwater grass
     }
-    Arrays.fill(chunkData, dataPos + height, dataPos + chunkInfo.baseValues.groundLevel, getBlockID(Block.waterStill));
+    Arrays.fill(chunkData, dataPos + height, dataPos + chunkInfo.baseValues.groundLevel, getBlockID(Block.waterStill)); // still water needs to be used, otherwise it will not react to player events because it is flowing "down".
   }
 }

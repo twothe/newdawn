@@ -48,9 +48,6 @@ import two.newdawn.util.TimeCounter;
  */
 public class NewDawnTerrainGenerator implements IChunkProvider {
 
-  /**
-   *
-   */
   protected static final boolean SHOW_MAP_FEATURES = true;
   protected static final boolean SHOW_MAP_DECORATION = true;
   /**
@@ -255,7 +252,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
 
         height = chunkInfo.getHeight(blockX, blockZ); // the y of the first air block
         heightFiller = height - 1 - (int) Math.round((this.fillerNoise.getNoise(blockX, blockZ) + 1.0) * 1.5 * ChunkInformation.BLOCK_SCALE);
-        blockBiome.fillLocation(worldNoise, chunkData, dataPos, height, heightFiller, blockX, blockZ, blockBiome, chunkInfo);
+        blockBiome.fillLocation(worldNoise, chunkData, dataPos, height, heightFiller, blockX, blockZ, chunkInfo);
 
         dataPos += ChunkInformation.WORLD_HEIGHT;
       }
