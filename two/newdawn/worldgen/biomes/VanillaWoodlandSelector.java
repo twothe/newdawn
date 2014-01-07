@@ -2,7 +2,6 @@
  */
 package two.newdawn.worldgen.biomes;
 
-import net.minecraft.world.biome.BiomeGenBase;
 import two.newdawn.API.NewDawnBiomeSelector;
 import two.newdawn.API.ChunkInformation;
 import two.newdawn.API.NewDawnBiome;
@@ -13,14 +12,6 @@ import two.newdawn.API.noise.SimplexNoise;
  */
 public class VanillaWoodlandSelector extends NewDawnBiomeSelector {
 
-  protected static final NewDawnBiome biomeSwampland = NewDawnBiome.copyVanilla(BiomeGenBase.swampland);
-  protected static final NewDawnBiome biomeForest = NewDawnBiome.copyVanilla(BiomeGenBase.forest);
-  protected static final NewDawnBiome biomeJungle = NewDawnBiome.copyVanilla(BiomeGenBase.jungle);
-  protected static final NewDawnBiome biomeTaiga = NewDawnBiome.copyVanilla(BiomeGenBase.taiga);
-  protected static final NewDawnBiome biomeForestHills = NewDawnBiome.copyVanilla(BiomeGenBase.forestHills);
-  protected static final NewDawnBiome biomeJungleHills = NewDawnBiome.copyVanilla(BiomeGenBase.jungleHills);
-  protected static final NewDawnBiome biomeTaigaHills = NewDawnBiome.copyVanilla(BiomeGenBase.taigaHills);
-
   public VanillaWoodlandSelector(final SimplexNoise worldNoise, final int priority) {
     super(worldNoise, priority);
   }
@@ -29,9 +20,9 @@ public class VanillaWoodlandSelector extends NewDawnBiomeSelector {
   public NewDawnBiome selectBiome(final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
     if (chunkInfo.isWoodland(blockX, blockZ)) {
       if (isSwampLandApplicable(blockX, blockZ, chunkInfo)) {
-        return biomeSwampland;
+        return VanillaBiomeProvider.biomeSwampland;
       } else if (chunkInfo.isAboveSeaLevel(blockX, blockZ)) {
-        if (chunkInfo.getElevation(blockX, blockZ) >= 16) {
+        if ((chunkInfo.getElevation(blockX, blockZ) >= 16) && (chunkInfo.getHeightDifference() >= 4)) {
           return getForestHillsBiome(blockX, blockZ, chunkInfo);
         } else {
           return getForestsBiome(blockX, blockZ, chunkInfo);
@@ -47,21 +38,21 @@ public class VanillaWoodlandSelector extends NewDawnBiomeSelector {
 
   protected NewDawnBiome getForestsBiome(final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
     if (chunkInfo.isTemperatureHot(blockX, blockZ)) {
-      return biomeJungle;
+      return VanillaBiomeProvider.biomeJungle;
     } else if (chunkInfo.isTemperatureFreezing(blockX, blockZ)) {
-      return biomeTaiga;
+      return VanillaBiomeProvider.biomeTaiga;
     } else {
-      return biomeForest;
+      return VanillaBiomeProvider.biomeForest;
     }
   }
 
   protected NewDawnBiome getForestHillsBiome(final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
     if (chunkInfo.isTemperatureHot(blockX, blockZ)) {
-      return biomeJungleHills;
+      return VanillaBiomeProvider.biomeJungleHills;
     } else if (chunkInfo.isTemperatureFreezing(blockX, blockZ)) {
-      return biomeTaigaHills;
+      return VanillaBiomeProvider.biomeTaigaHills;
     } else {
-      return biomeForestHills;
+      return VanillaBiomeProvider.biomeForestHills;
     }
   }
 }

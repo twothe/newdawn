@@ -235,6 +235,8 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
         humidityMap[dataPos] = (float) humidity;
       }
     }
+    
+    result.updateMinMaxInformation();
 
     return result;
   }
