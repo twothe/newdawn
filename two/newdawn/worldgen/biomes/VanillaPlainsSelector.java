@@ -16,12 +16,10 @@ public class VanillaPlainsSelector extends NewDawnBiomeSelector {
 
   /* temperate */
   protected static final NewDawnBiome biomeGrassPlains = NewDawnBiome.copyVanilla(BiomeGenBase.plains);
-  protected static final NewDawnBiome biomeGravelPlains = new NewDawnBiome(BiomeGenBase.plains, Block.gravel.blockID, Block.stone.blockID);
-  protected static final NewDawnBiome biomeRockPlains = new NewDawnBiome(BiomeGenBase.plains, Block.stone.blockID, Block.stone.blockID);
+  public static final NewDawnBiome biomeGravelPlains = new NewDawnBiome(BiomeGenBase.plains, Block.gravel.blockID, Block.stone.blockID);
   /* cold */
   protected static final NewDawnBiome biomeIcePlains = NewDawnBiome.copyVanilla(BiomeGenBase.icePlains);
-  protected static final NewDawnBiome biomeFrozenGravelPlains = new NewDawnBiome(BiomeGenBase.icePlains, Block.gravel.blockID, Block.stone.blockID);
-  protected static final NewDawnBiome biomeFrozenRockPlains = new NewDawnBiome(BiomeGenBase.icePlains, Block.stone.blockID, Block.stone.blockID);
+  public static final NewDawnBiome biomeFrozenGravelPlains = new NewDawnBiome(BiomeGenBase.icePlains, Block.gravel.blockID, Block.stone.blockID);
   /* hot */
   protected static final NewDawnBiome biomeDesert = NewDawnBiome.copyVanilla(BiomeGenBase.desert);
   protected static final NewDawnBiome biomeMuddyDesert = new NewDawnBiome(BiomeGenBase.desert, Block.hardenedClay.blockID, Block.sand.blockID);
@@ -50,24 +48,16 @@ public class VanillaPlainsSelector extends NewDawnBiomeSelector {
   }
 
   protected NewDawnBiome getPlainsCold(final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
-    if (chunkInfo.isHumiditySparse(blockX, blockZ)) {
-      if (chunkInfo.isGroundLevelOrShallowWater(blockX, blockZ)) {
-        return biomeFrozenGravelPlains;
-      } else {
-        return biomeFrozenRockPlains;
-      }
+    if (chunkInfo.isHumiditySparse(blockX, blockZ) && chunkInfo.isGroundLevelOrShallowWater(blockX, blockZ)) {
+      return biomeFrozenGravelPlains;
     } else {
       return biomeIcePlains;
     }
   }
 
   protected NewDawnBiome getPlainsMedium(final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
-    if (chunkInfo.isHumiditySparse(blockX, blockZ)) {
-      if (chunkInfo.isGroundLevelOrShallowWater(blockX, blockZ)) {
-        return biomeGravelPlains;
-      } else {
-        return biomeRockPlains;
-      }
+    if (chunkInfo.isHumiditySparse(blockX, blockZ) && chunkInfo.isGroundLevelOrShallowWater(blockX, blockZ)) {
+      return biomeGravelPlains;
     } else {
       return biomeGrassPlains;
     }

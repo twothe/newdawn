@@ -15,7 +15,7 @@ import two.newdawn.worldgen.biomes.VanillaBiomeProvider;
  *
  * @author Two
  */
-@Mod(modid = "newdawn", name = "New Dawn", version = "131229")
+@Mod(modid = "newdawn", name = "New Dawn", version = "140106")
 @NetworkMod(clientSideRequired = false, serverSideRequired = false)
 public class NewDawn {
 

@@ -54,7 +54,7 @@ public class VanillaMountainSelector extends NewDawnBiomeSelector {
     final double hillsHeight = (this.hillsNoiseAreaLarge.getNoise(blockX, blockZ) * 0.4
             + this.hillsNoiseAreaSmall.getNoise(blockX, blockZ) * 0.59
             + this.hillsNoiseBlock.getNoise(blockX, blockZ) * 0.01
-            + 0.25)
+            + 0.5)
             * hillsNoiseEffective * 32.0 * ChunkInformation.BLOCK_SCALE; // the effective height of the hill at this point
     chunkInfo.isMountain[ChunkInformation.blockToChunk(blockX, blockZ)] = (hillsHeight > 4);
     return hillsHeight;
