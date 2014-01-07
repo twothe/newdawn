@@ -8,7 +8,7 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkMod;
-import two.newdawn.API.NewDawnBiomeList;
+import two.newdawn.API.NewDawnRegistry;
 import two.newdawn.worldgen.biomes.VanillaBiomeProvider;
 
 /**
@@ -33,6 +33,6 @@ public class NewDawn {
 
   @Mod.EventHandler
   public void postInit(FMLPostInitializationEvent event) {
-    NewDawnBiomeList.registerProvider(new VanillaBiomeProvider());
+    NewDawnRegistry.registerProvider(new VanillaBiomeProvider());
   }
 }

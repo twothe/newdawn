@@ -37,7 +37,7 @@ import static net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate.Ev
 import net.minecraftforge.event.terraingen.TerrainGen;
 import two.newdawn.API.NewDawnBiomeSelector;
 import two.newdawn.API.NewDawnBiome;
-import two.newdawn.API.NewDawnBiomeList;
+import two.newdawn.API.NewDawnRegistry;
 import two.newdawn.API.noise.NoiseStretch;
 import two.newdawn.API.noise.SimplexNoise;
 import two.newdawn.util.TimeCounter;
@@ -100,7 +100,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
   public NewDawnTerrainGenerator(World world, long worldSeed, boolean useMapFeatures) {
     this.seedRandom = getRandomGenerator(worldSeed);
     worldNoise = new SimplexNoise(seedRandom);
-    biomeSelectors = NewDawnBiomeList.getSelectors(worldNoise);
+    biomeSelectors = NewDawnRegistry.getSelectors(worldNoise);
     terrainModifiers = new TreeSet<NewDawnBiomeSelector>();
     if (biomeSelectors.isEmpty()) {
       throw new IllegalStateException("No biome registered for NewDawn world type!");

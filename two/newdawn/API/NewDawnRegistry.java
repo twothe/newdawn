@@ -17,7 +17,7 @@ import two.newdawn.API.noise.SimplexNoise;
  *
  * @author Two
  */
-public class NewDawnBiomeList {
+public class NewDawnRegistry {
 
   /**
    * Register a new provider for NewDawn world generation.
