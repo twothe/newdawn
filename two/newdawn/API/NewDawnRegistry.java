@@ -27,8 +27,10 @@ public class NewDawnRegistry {
    * @param provider the provider to register.
    */
   public static void registerProvider(final NewDawnBiomeProvider provider) {
-    if (biomeProviders.add(provider) == false) {
-      FMLLog.warning("Added NewDawn biome provider '%s' twice!", provider.getClass().getName());
+    if (provider != null) {
+      if (biomeProviders.add(provider) == false) {
+        FMLLog.warning("Added NewDawn biome provider '%s' twice!", provider.getClass().getName());
+      }
     }
   }
   /* Internal list of providers */

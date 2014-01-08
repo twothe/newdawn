@@ -3,6 +3,7 @@
  */
 package two.newdawn;
 
+import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
@@ -10,6 +11,7 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkMod;
 import two.newdawn.API.NewDawnRegistry;
 import two.newdawn.worldgen.biomes.VanillaBiomeProvider;
+import two.newdawn.worldgen.biomes.modsupport.thaumcraft.ThaumcraftBiomeProvider;
 
 /**
  *
@@ -34,5 +36,8 @@ public class NewDawn {
   @Mod.EventHandler
   public void postInit(FMLPostInitializationEvent event) {
     NewDawnRegistry.registerProvider(new VanillaBiomeProvider());
+    if (Loader.isModLoaded("Thaumcraft")) {
+      NewDawnRegistry.registerProvider(new ThaumcraftBiomeProvider());
+    }
   }
 }
