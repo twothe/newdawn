@@ -7,8 +7,8 @@ import cpw.mods.fml.common.FMLLog;
 import two.newdawn.API.WorldBaseValues;
 import two.newdawn.API.ChunkInformation;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.TreeSet;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockSand;
 import net.minecraft.block.material.Material;
@@ -92,16 +92,18 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
   protected final NoiseStretch humidityRegionNoise;
   protected final NoiseStretch stretchForestSmallNoise;
   protected final WorldBaseValues baseValues;
-  protected final TreeSet<NewDawnBiomeSelector> biomeSelectors;
-  protected final TreeSet<NewDawnBiomeSelector> terrainModifiers;
+  protected final List<NewDawnBiomeSelector> biomeSelectors;
+  protected final List<NewDawnBiomeSelector> terrainModifiers;
   private final TimeCounter timeTerrain = new TimeCounter("Terrain");
   private final TimeCounter timeInfo = new TimeCounter("Info");
 
   public NewDawnTerrainGenerator(World world, long worldSeed, boolean useMapFeatures) {
+    this.baseValues = new WorldBaseValues(-0.5f, 0.5f, -0.5f, 0.5f, 0.17f, world.provider.getAverageGroundLevel());
     this.seedRandom = getRandomGenerator(worldSeed);
     worldNoise = new SimplexNoise(seedRandom);
+
     biomeSelectors = NewDawnRegistry.getSelectors(worldNoise);
-    terrainModifiers = new TreeSet<NewDawnBiomeSelector>();
+    terrainModifiers = new ArrayList<NewDawnBiomeSelector>();
     if (biomeSelectors.isEmpty()) {
       throw new IllegalStateException("No biome registered for NewDawn world type!");
     } else {
@@ -112,8 +114,6 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
         FMLLog.info("Using NewDawn biome: %s %s", selector.getClass().getSimpleName(), selector.modifiesTerrain() ? "(modifies terrain)" : "");
       }
     }
-
-    this.baseValues = new WorldBaseValues(-0.5f, 0.5f, -0.5f, 0.5f, 0.17f, world.provider.getAverageGroundLevel());
 
     this.terrainRoughness = worldNoise.generateNoiseStretcher(1524.0, 1798.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
     this.heightBlock = worldNoise.generateNoiseStretcher(23.0, 27.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
@@ -235,7 +235,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
         humidityMap[dataPos] = (float) humidity;
       }
     }
-    
+
     result.updateMinMaxInformation();
 
     return result;

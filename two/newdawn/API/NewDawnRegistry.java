@@ -3,9 +3,9 @@
 package two.newdawn.API;
 
 import cpw.mods.fml.common.FMLLog;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import two.newdawn.API.noise.SimplexNoise;
 
 /**
@@ -28,13 +28,15 @@ public class NewDawnRegistry {
    */
   public static void registerProvider(final NewDawnBiomeProvider provider) {
     if (provider != null) {
-      if (biomeProviders.add(provider) == false) {
-        FMLLog.warning("Added NewDawn biome provider '%s' twice!", provider.getClass().getName());
+      if (biomeProviders.contains(provider)) {
+        FMLLog.warning("Tried to add NewDawn biome provider '%s' twice!", provider.getClass().getName());
+      } else {
+        biomeProviders.add(provider);
       }
     }
   }
   /* Internal list of providers */
-  protected final static Set<NewDawnBiomeProvider> biomeProviders = new HashSet<NewDawnBiomeProvider>();
+  protected final static ArrayList<NewDawnBiomeProvider> biomeProviders = new ArrayList<NewDawnBiomeProvider>();
 
   /**
    * Initializes a new set of NewDawnSelectors for a new world distributing the given world noise.
@@ -44,11 +46,12 @@ public class NewDawnRegistry {
    * @param worldNoise the world's noise.
    * @return a set of NewDawnBiomeSelectors sorted by priority.
    */
-  public static TreeSet<NewDawnBiomeSelector> getSelectors(final SimplexNoise worldNoise) {
-    final TreeSet<NewDawnBiomeSelector> result = new TreeSet<NewDawnBiomeSelector>();
+  public static List<NewDawnBiomeSelector> getSelectors(final SimplexNoise worldNoise) {
+    final ArrayList<NewDawnBiomeSelector> result = new ArrayList<NewDawnBiomeSelector>();
     for (final NewDawnBiomeProvider provider : biomeProviders) {
       result.addAll(provider.getBiomeSelectors(worldNoise));
     }
+    Collections.sort(result);
     return result;
   }
 }

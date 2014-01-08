@@ -14,7 +14,7 @@ import two.newdawn.API.noise.SimplexNoise;
 public class ThaumcraftBiomeProvider implements NewDawnBiomeProvider {
 
   @Override
-  public Set<NewDawnBiomeSelector> getBiomeSelectors(SimplexNoise worldNoise) {
+  public Set<NewDawnBiomeSelector> getBiomeSelectors(final SimplexNoise worldNoise) {
     final HashSet<NewDawnBiomeSelector> result = new HashSet<NewDawnBiomeSelector>();
     result.add(new ThaumcraftSelector(worldNoise, PRIORITY_MEDIUM));
     return result;
