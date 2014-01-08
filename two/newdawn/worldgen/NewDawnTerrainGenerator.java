@@ -101,20 +101,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     this.baseValues = new WorldBaseValues(-0.5f, 0.5f, -0.5f, 0.5f, 0.17f, world.provider.getAverageGroundLevel());
     this.seedRandom = getRandomGenerator(worldSeed);
     worldNoise = new SimplexNoise(seedRandom);
-
-    biomeSelectors = NewDawnRegistry.getSelectors(worldNoise);
-    terrainModifiers = new ArrayList<NewDawnBiomeSelector>();
-    if (biomeSelectors.isEmpty()) {
-      throw new IllegalStateException("No biome registered for NewDawn world type!");
-    } else {
-      for (final NewDawnBiomeSelector selector : biomeSelectors) {
-        if (selector.modifiesTerrain()) {
-          terrainModifiers.add(selector);
-        }
-        FMLLog.info("Using NewDawn biome: %s %s", selector.getClass().getSimpleName(), selector.modifiesTerrain() ? "(modifies terrain)" : "");
-      }
-    }
-
+    
     this.terrainRoughness = worldNoise.generateNoiseStretcher(1524.0, 1798.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
     this.heightBlock = worldNoise.generateNoiseStretcher(23.0, 27.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
     this.heightAreaSmall = worldNoise.generateNoiseStretcher(413.0, 467.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
@@ -128,6 +115,19 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     this.humidityAreaNoise = worldNoise.generateNoiseStretcher(320.0, 273.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
     this.humidityRegionNoise = worldNoise.generateNoiseStretcher(880.0, 919.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
     this.stretchForestSmallNoise = worldNoise.generateNoiseStretcher(93.0, 116.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    
+    biomeSelectors = NewDawnRegistry.getSelectors(worldNoise);
+    terrainModifiers = new ArrayList<NewDawnBiomeSelector>();
+    if (biomeSelectors.isEmpty()) {
+      throw new IllegalStateException("No biome registered for NewDawn world type!");
+    } else {
+      for (final NewDawnBiomeSelector selector : biomeSelectors) {
+        if (selector.modifiesTerrain()) {
+          terrainModifiers.add(selector);
+        }
+        FMLLog.info("Using NewDawn biome: %s %s", selector.getClass().getSimpleName(), selector.modifiesTerrain() ? "(modifies terrain)" : "");
+      }
+    }
 
     caveGenerator = TerrainGen.getModdedMapGen(new NewDawnMapGenCaves(), CAVE);
     strongholdGenerator = (MapGenStronghold) TerrainGen.getModdedMapGen(new MapGenStronghold(), STRONGHOLD);
