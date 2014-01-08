@@ -23,20 +23,26 @@ public class NewDawn {
 
   @Mod.Instance("NewDawn")
   public static NewDawn instance;
+  public static final Config config = new Config();
+  protected boolean useInternalTCSupport = true;
 
   @Mod.EventHandler
   public void preInit(FMLPreInitializationEvent event) {
+    config.initialize(event.getSuggestedConfigurationFile());
   }
 
   @Mod.EventHandler
   public void load(FMLInitializationEvent event) {
+    config.load();
+    this.useInternalTCSupport = config.getMiscBoolean("Use internal Thaumcraft support", true);
     NewDawnWorldType.register();
+    config.save();
   }
 
   @Mod.EventHandler
   public void postInit(FMLPostInitializationEvent event) {
     NewDawnRegistry.registerProvider(new VanillaBiomeProvider());
-    if (Loader.isModLoaded("Thaumcraft")) {
+    if (useInternalTCSupport && Loader.isModLoaded("Thaumcraft")) {
       NewDawnRegistry.registerProvider(new ThaumcraftBiomeProvider());
     }
   }
