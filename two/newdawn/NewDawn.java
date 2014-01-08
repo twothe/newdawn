@@ -17,7 +17,7 @@ import two.newdawn.worldgen.biomes.modsupport.thaumcraft.ThaumcraftBiomeProvider
  *
  * @author Two
  */
-@Mod(modid = "newdawn", name = "New Dawn", version = "140107")
+@Mod(modid = "newdawn", name = "New Dawn", version = "140108")
 @NetworkMod(clientSideRequired = false, serverSideRequired = false)
 public class NewDawn {
 
