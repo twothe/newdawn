@@ -50,11 +50,11 @@ public class VanillaBiomeProvider implements NewDawnBiomeProvider {
   public Set<NewDawnBiomeSelector> getBiomeSelectors(final SimplexNoise worldNoise) {
     final HashSet<NewDawnBiomeSelector> result = new HashSet<NewDawnBiomeSelector>();
 
-    result.add(new VanillaMountainSelector(worldNoise, PRIORITY_LOWEST + 1));
-    result.add(new VanillaWoodlandSelector(worldNoise, PRIORITY_LOWEST + 2));
-    result.add(new BeachSelector(worldNoise, PRIORITY_LOWEST + 3));
-    result.add(new VanillaOceanSelector(worldNoise, PRIORITY_LOWEST + 4));
-    result.add(new VanillaPlainsSelector(worldNoise, PRIORITY_LOWEST + 5));
+    result.add(new VanillaMountainSelector(worldNoise, PRIORITY_LOWEST - 1));
+    result.add(new VanillaWoodlandSelector(worldNoise, PRIORITY_LOWEST - 2));
+    result.add(new BeachSelector(worldNoise, PRIORITY_LOWEST - 3));
+    result.add(new VanillaOceanSelector(worldNoise, PRIORITY_LOWEST - 4));
+    result.add(new VanillaPlainsSelector(worldNoise, PRIORITY_LOWEST - 5));
 
     return result;
   }
