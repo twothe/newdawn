@@ -30,7 +30,7 @@ public interface NewDawnBiomeProvider {
 
   public static final int PRIORITY_HIGHEST = 1000;
   public static final int PRIORITY_LOWEST = 0;
-  public static final int PRIORITY_MEDIUM = PRIORITY_LOWEST / 2;
+  public static final int PRIORITY_MEDIUM = PRIORITY_HIGHEST / 2;
 
   /**
    * Create and return a list of NewDawnBiomeSelectors for this provider using the given world noise.
