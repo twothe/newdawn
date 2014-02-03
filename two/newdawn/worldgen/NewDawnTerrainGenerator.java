@@ -6,9 +6,9 @@ package two.newdawn.worldgen;
 import cpw.mods.fml.common.FMLLog;
 import two.newdawn.API.WorldBaseValues;
 import two.newdawn.API.ChunkInformation;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockSand;
 import net.minecraft.block.material.Material;
@@ -53,30 +53,30 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
   /**
    * Reference to the World object.
    */
-  private World worldObj;
+  private final World worldObj;
   /**
    * are map structures going to be generated (e.g. strongholds)
    */
   private final boolean mapFeaturesEnabled;
-  private MapGenBase caveGenerator;
+  private final MapGenBase caveGenerator;
   /**
    * Holds Stronghold Generator
    */
-  private MapGenStronghold strongholdGenerator;
+  private final MapGenStronghold strongholdGenerator;
   /**
    * Holds Village Generator
    */
-  private MapGenVillage villageGenerator;
+  private final MapGenVillage villageGenerator;
   /**
    * Holds Mineshaft Generator
    */
-  private MapGenMineshaft mineshaftGenerator;
-  private MapGenScatteredFeature scatteredFeatureGenerator;
+  private final MapGenMineshaft mineshaftGenerator;
+  private final MapGenScatteredFeature scatteredFeatureGenerator;
   /**
    * Holds ravine generator
    */
-  private MapGenBase ravineGenerator;
-  protected final SecureRandom seedRandom;
+  private final MapGenBase ravineGenerator;
+  protected final Random seedRandom;
   protected final SimplexNoise worldNoise;
   protected final NoiseStretch terrainRoughness;
   protected final NoiseStretch heightBlock;
@@ -99,7 +99,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
 
   public NewDawnTerrainGenerator(World world, long worldSeed, boolean useMapFeatures) {
     this.baseValues = new WorldBaseValues(-0.5f, 0.5f, -0.5f, 0.5f, 0.17f, world.provider.getAverageGroundLevel());
-    this.seedRandom = getRandomGenerator(worldSeed);
+    this.seedRandom = new Random(worldSeed);
     worldNoise = new SimplexNoise(seedRandom);
     
     this.terrainRoughness = worldNoise.generateNoiseStretcher(1524.0, 1798.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
@@ -298,7 +298,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
    * Populates chunk with ores etc etc
    */
   @Override
-  public void populate(IChunkProvider chunkProvider, int chunkX, int chunkZ) {
+  public void populate(final IChunkProvider chunkProvider, final int chunkX, final int chunkZ) {
     BlockSand.fallInstantly = true;
     final int blockX = chunkX * 16;
     final int blockZ = chunkZ * 16;
@@ -464,17 +464,6 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
   @Override
   public ChunkPosition findClosestStructure(World par1World, String par2Str, int par3, int par4, int par5) {
     return "Stronghold".equals(par2Str) && this.strongholdGenerator != null ? this.strongholdGenerator.getNearestInstance(par1World, par3, par4, par5) : null;
-  }
-
-  protected static SecureRandom getRandomGenerator(final long seed) {
-    SecureRandom random;
-    try {
-      random = SecureRandom.getInstance("SHA1PRNG", "SUN");
-    } catch (Exception ex) {
-      random = new SecureRandom(); // take what we can get
-    }
-    random.setSeed(seed);
-    return random;
   }
 
   @Override
