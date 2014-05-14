@@ -7,7 +7,7 @@ New Dawn - Terrain mod for Minecraft
 License
 =======
 
-Copyright (c) 2013 Stefan Feldbinder
+Copyright (c) Stefan Feldbinder
 
 Everyone is allowed to do whatever they want with a copy of this software, 
 with the following restrictions:
