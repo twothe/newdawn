@@ -1,0 +1,16 @@
+[
+{
+  "modid": "newdawn",
+  "name": "New Dawn",
+  "description": "A completely new terrain engine.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "http://www.minecraftforum.net/topic/1241861-164forge-new-dawn-completely-new-terrain-engine-now-with-api/",
+  "updateUrl": "",
+  "authors": ["Two"],
+  "credits": "",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
