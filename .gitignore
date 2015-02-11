@@ -1,0 +1,17 @@
+.gradle
+build
+run
+out
+classes
+*.iml
+*.ipr
+*.iws
+runtime
+.classpath
+.project
+.settings
+bin
+.nb-gradle
+.nb-gradle-properties
+eclipse
+/*.txt
