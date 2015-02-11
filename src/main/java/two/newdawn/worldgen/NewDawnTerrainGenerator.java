@@ -4,8 +4,6 @@
 package two.newdawn.worldgen;
 
 import cpw.mods.fml.common.FMLLog;
-import two.newdawn.API.WorldBaseValues;
-import two.newdawn.API.ChunkInformation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -31,19 +29,25 @@ import net.minecraft.world.gen.structure.MapGenScatteredFeature;
 import net.minecraft.world.gen.structure.MapGenStronghold;
 import net.minecraft.world.gen.structure.MapGenVillage;
 import net.minecraftforge.common.MinecraftForge;
-import static net.minecraftforge.event.terraingen.InitMapGenEvent.EventType.*;
+import static net.minecraftforge.event.terraingen.InitMapGenEvent.EventType.CAVE;
+import static net.minecraftforge.event.terraingen.InitMapGenEvent.EventType.MINESHAFT;
+import static net.minecraftforge.event.terraingen.InitMapGenEvent.EventType.RAVINE;
+import static net.minecraftforge.event.terraingen.InitMapGenEvent.EventType.SCATTERED_FEATURE;
+import static net.minecraftforge.event.terraingen.InitMapGenEvent.EventType.STRONGHOLD;
+import static net.minecraftforge.event.terraingen.InitMapGenEvent.EventType.VILLAGE;
 import net.minecraftforge.event.terraingen.PopulateChunkEvent;
 import static net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate.EventType.DUNGEON;
 import static net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate.EventType.ICE;
 import static net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate.EventType.LAKE;
 import static net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate.EventType.LAVA;
 import net.minecraftforge.event.terraingen.TerrainGen;
-import two.newdawn.API.NewDawnBiomeSelector;
+import two.newdawn.API.ChunkInformation;
 import two.newdawn.API.NewDawnBiome;
+import two.newdawn.API.NewDawnBiomeSelector;
 import two.newdawn.API.NewDawnRegistry;
+import two.newdawn.API.WorldBaseValues;
 import two.newdawn.API.noise.NoiseStretch;
 import two.newdawn.API.noise.SimplexNoise;
-import two.newdawn.util.TimeCounter;
 
 /**
  *

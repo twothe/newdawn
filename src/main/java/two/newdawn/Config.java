@@ -2,12 +2,15 @@
  */
 package two.newdawn;
 
+import cpw.mods.fml.common.registry.GameData;
 import java.io.File;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import net.minecraft.block.Block;
-import net.minecraft.item.Item;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.config.Property;
+import two.newdawn.util.Utils;
 
 /**
  * @author Two
@@ -16,12 +19,8 @@ public class Config {
 
   protected static final String CATEGORY_ALLOWED_RECIPES = "Allowed Recipes";
   protected static final String CATEGORY_VARIOUS_SETTINGS = "Settings";
-  protected static final String CATEGORY_ITEMID = "ItemID";
-  protected static final String CATEGORY_BLOCKID = "BlockID";
   //--- Class ------------------------------------------------------------------
-  public static final AtomicInteger blockIDs = new AtomicInteger(829);
-  public static final AtomicInteger itemIDs = new AtomicInteger(7328);
-  //--- Misc config settings ---------------------------------------------------
+  protected static final String PREFIX_TILE = "tile."; // as in block.getUnlocalizedName()
   protected Configuration configuration;
 
   protected Config() {
@@ -39,22 +38,6 @@ public class Config {
     configuration.save();
   }
 
-  public int getBlockID(final Class<? extends Block> block) {
-    final String className = block.getSimpleName();
-    final String key = className.startsWith("Block") ? className.substring("Block".length()) : className;
-    final int defaultID = blockIDs.getAndIncrement();
-    final Property property = configuration.get(CATEGORY_BLOCKID, key, defaultID);
-    return property.getInt(defaultID);
-  }
-
-  public int getItemID(final Class<? extends Item> item) {
-    final String className = item.getSimpleName();
-    final String key = className.startsWith("Item") ? className.substring("Item".length()) : className;
-    final int defaultID = itemIDs.getAndIncrement();
-    final Property property = configuration.get(CATEGORY_ITEMID, key, defaultID);
-    return property.getInt(defaultID);
-  }
-
   public boolean isCraftingEnabled(final String key) {
     return isCraftingEnabled(key, true);
   }
@@ -65,17 +48,91 @@ public class Config {
   }
 
   public int getMiscInteger(final String key, final int defaultValue) {
-    final Property property = configuration.get(CATEGORY_VARIOUS_SETTINGS, key, defaultValue);
+    return getMiscInteger(key, defaultValue, null);
+  }
+
+  public int getMiscInteger(final String key, final int defaultValue, final String comment) {
+    final Property property = configuration.get(CATEGORY_VARIOUS_SETTINGS, key, defaultValue, comment);
     return property.getInt(defaultValue);
   }
 
   public double getMiscDouble(final String key, final double defaultValue) {
-    final Property property = configuration.get(CATEGORY_VARIOUS_SETTINGS, key, defaultValue);
+    return getMiscDouble(key, defaultValue, null);
+  }
+
+  public double getMiscDouble(final String key, final double defaultValue, final String comment) {
+    final Property property = configuration.get(CATEGORY_VARIOUS_SETTINGS, key, defaultValue, comment);
     return property.getDouble(defaultValue);
   }
 
   public boolean getMiscBoolean(final String key, final boolean defaultValue) {
-    final Property property = configuration.get(CATEGORY_VARIOUS_SETTINGS, key, defaultValue);
+    return getMiscBoolean(key, defaultValue, null);
+  }
+
+  public boolean getMiscBoolean(final String key, final boolean defaultValue, final String comment) {
+    final Property property = configuration.get(CATEGORY_VARIOUS_SETTINGS, key, defaultValue, comment);
     return property.getBoolean(defaultValue);
   }
+
+  public List<String> getMiscStrings(final String key, final List<String> defaultValue) {
+    return getMiscStrings(key, defaultValue, null);
+  }
+
+  public List<String> getMiscStrings(final String key, final List<String> defaultValue, final String comment) {
+    final Property property = configuration.get(CATEGORY_VARIOUS_SETTINGS, key, defaultValue.toArray(new String[defaultValue.size()]), comment);
+    return Arrays.asList(property.getStringList());
+  }
+
+  public List<Block> getMiscBlocks(final String key, final List<Block> defaultValue) {
+    return getMiscBlocks(key, defaultValue, null);
+  }
+
+  public List<Block> getMiscBlocks(final String key, final List<Block> defaultValue, final String comment) {
+    final String[] defaultValueStrings = blockListToBlockNames(defaultValue);
+    final Property property = configuration.get(CATEGORY_VARIOUS_SETTINGS, key, defaultValueStrings, comment);
+    return blockNamesToBlockList(property.getStringList());
+  }
+
+  public Configuration getConfiguration() {
+    return configuration;
+  }
+
+  protected String[] blockListToBlockNames(final List<Block> blockList) {
+    if ((blockList == null) || blockList.isEmpty()) {
+      return new String[0];
+    } else {
+      final String[] result = new String[blockList.size()];
+      int index = 0;
+      for (final Block block : blockList) {
+        final String blockname = GameData.getBlockRegistry().getNameForObject(block);
+        if (blockname != null) {
+          result[index] = blockname;
+          ++index;
+        } else {
+          NewDawn.log.warn("Ignoring invalid block configuration entry: %s", Utils.blockToString(block));
+        }
+      }
+      Arrays.sort(result);
+      return result;
+    }
+  }
+
+  protected List<Block> blockNamesToBlockList(final String[] blockNames) {
+    if ((blockNames == null) || (blockNames.length == 0)) {
+      return new ArrayList<Block>();
+    } else {
+      final ArrayList<Block> result = new ArrayList<Block>(blockNames.length);
+      Arrays.sort(blockNames);
+      for (final String blockName : blockNames) {
+        final Block block = Block.getBlockFromName(blockName);
+        if (block != null) {
+          result.add(block);
+        } else {
+          NewDawn.log.warn("Ignoring invalid block configuration entry: %s", String.valueOf(blockName));
+        }
+      }
+      return result;
+    }
+  }
+
 }

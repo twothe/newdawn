@@ -2,14 +2,13 @@
  */
 package two.newdawn.worldgen.biomes;
 
-import net.minecraft.init.Blocks;
 import net.minecraft.world.biome.BiomeGenBase;
-import two.newdawn.API.NewDawnBiomeSelector;
 import two.newdawn.API.ChunkInformation;
-import two.newdawn.API.NewDawnBiome;
-import two.newdawn.API.noise.SimplexNoise;
 import two.newdawn.API.ChunkInformation.Humidity;
 import two.newdawn.API.ChunkInformation.Temperature;
+import two.newdawn.API.NewDawnBiome;
+import two.newdawn.API.NewDawnBiomeSelector;
+import two.newdawn.API.noise.SimplexNoise;
 
 /**
  * @author Two

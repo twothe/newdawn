@@ -12,6 +12,9 @@ import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import net.minecraft.command.ICommandManager;
 import net.minecraft.command.ServerCommandManager;
 import net.minecraft.server.MinecraftServer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.StringFormatterMessageFactory;
 import two.newdawn.API.NewDawnRegistry;
 import two.newdawn.commands.CommandGenerateWorld;
 import two.newdawn.worldgen.biomes.VanillaBiomeProvider;
@@ -26,6 +29,8 @@ public class NewDawn {
   public static final String MOD_NAME = "New Dawn";
   public static final String MOD_ID = "newdawn";
   public static final String MOD_VERSION = "1710.1.0";
+  /* Global logger that uses string format type logging */
+  public static final Logger log = LogManager.getLogger(NewDawn.class.getSimpleName(), new StringFormatterMessageFactory());
 
   @Mod.Instance("NewDawn")
   public static NewDawn instance;

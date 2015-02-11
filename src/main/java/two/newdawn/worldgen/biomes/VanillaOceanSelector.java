@@ -3,9 +3,9 @@
 package two.newdawn.worldgen.biomes;
 
 import net.minecraft.world.biome.BiomeGenBase;
-import two.newdawn.API.NewDawnBiomeSelector;
 import two.newdawn.API.ChunkInformation;
 import two.newdawn.API.NewDawnBiome;
+import two.newdawn.API.NewDawnBiomeSelector;
 import two.newdawn.API.noise.SimplexNoise;
 
 /**
