@@ -25,7 +25,7 @@ public class NewDawn {
 
   public static final String MOD_NAME = "New Dawn";
   public static final String MOD_ID = "newdawn";
-  public static final String MOD_VERSION = "172.1.0";
+  public static final String MOD_VERSION = "1710.1.0";
 
   @Mod.Instance("NewDawn")
   public static NewDawn instance;
