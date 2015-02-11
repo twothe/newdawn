@@ -1,14 +1,14 @@
 [
 {
-  "modid": "newdawn",
-  "name": "New Dawn",
-  "description": "A completely new terrain engine.",
+  "modid": "examplemod",
+  "name": "Example Mod",
+  "description": "Example placeholder mod.",
   "version": "${version}",
   "mcversion": "${mcversion}",
-  "url": "http://www.minecraftforum.net/topic/1241861-164forge-new-dawn-completely-new-terrain-engine-now-with-api/",
+  "url": "",
   "updateUrl": "",
-  "authors": ["Two"],
-  "credits": "",
+  "authorList": ["ExampleDude"],
+  "credits": "The Forge and FML guys, for making this example",
   "logoFile": "",
   "screenshots": [],
   "dependencies": []
