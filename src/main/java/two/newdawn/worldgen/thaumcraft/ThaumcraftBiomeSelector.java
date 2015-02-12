@@ -32,7 +32,7 @@ public class ThaumcraftBiomeSelector extends NewDawnBiomeSelector {
     this.biomeGood = biomeGood;
 
     final Random random = worldNoise.getRandom();
-    this.goodEvilNoise = new NoiseStretch(worldNoise, 1280.0, 1190.0, random.nextDouble(), random.nextDouble());
+    this.goodEvilNoise = new NoiseStretch(worldNoise, 1230.0, 1190.0, random.nextDouble(), random.nextDouble());
     this.areaNoise = new NoiseStretch(worldNoise, 62.3, 71.6, random.nextDouble(), random.nextDouble());
     this.blockNoise = new NoiseStretch(worldNoise, 8.2, 7.9, random.nextDouble(), random.nextDouble());
   }
@@ -51,15 +51,17 @@ public class ThaumcraftBiomeSelector extends NewDawnBiomeSelector {
    */
   @Override
   public NewDawnBiome selectBiome(final int blockX, final int blockZ, final ChunkInformation chunkInfo) {
-    final double goodEvil = this.goodEvilNoise.getNoise(blockX, blockZ);
-    if (goodEvil >= thaumcraftConfiguration.thresholdGood) {
-      return biomeGood;
-    } else {
-      final double modifiedGoodEvil = goodEvil * 0.95 + this.areaNoise.getNoise(blockX, blockZ) * 0.025 + this.blockNoise.getNoise(blockX, blockZ) * 0.025;
-      if (modifiedGoodEvil <= thaumcraftConfiguration.thresholdTaint) {
-        return biomeTainted;
-      } else if (modifiedGoodEvil <= thaumcraftConfiguration.thresholdEvil) {
-        return biomeEvil;
+    if (chunkInfo.isGroundLevelOrShallowWater(blockX, blockZ)) {
+      final double goodEvil = this.goodEvilNoise.getNoise(blockX, blockZ);
+      if (goodEvil >= thaumcraftConfiguration.thresholdGood) {
+        return biomeGood;
+      } else {
+        final double modifiedGoodEvil = goodEvil * 0.95 + this.areaNoise.getNoise(blockX, blockZ) * 0.025 + this.blockNoise.getNoise(blockX, blockZ) * 0.025;
+        if (modifiedGoodEvil <= thaumcraftConfiguration.thresholdTaint) {
+          return biomeTainted;
+        } else if (modifiedGoodEvil <= thaumcraftConfiguration.thresholdEvil) {
+          return biomeEvil;
+        }
       }
     }
     return null;
