@@ -4,6 +4,7 @@
 package two.newdawn;
 
 import cpw.mods.fml.common.FMLLog;
+import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
@@ -17,7 +18,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.StringFormatterMessageFactory;
 import two.newdawn.API.NewDawnRegistry;
 import two.newdawn.commands.CommandGenerateWorld;
-import two.newdawn.worldgen.biomes.VanillaBiomeProvider;
+import two.newdawn.worldgen.thaumcraft.ThaumcraftBiomeProvider;
+import two.newdawn.worldgen.vanilla.VanillaBiomeProvider;
 
 /**
  *
@@ -36,6 +38,7 @@ public class NewDawn {
   public static NewDawn instance;
   public static final Config config = new Config();
   protected NewDawnWorldType worldType;
+  protected boolean thaumcraftSupportEnabled;
 
   @Mod.EventHandler
   public void preInit(FMLPreInitializationEvent event) {
@@ -46,12 +49,20 @@ public class NewDawn {
   public void load(FMLInitializationEvent event) {
     config.load();
     this.worldType = new NewDawnWorldType();
+    this.thaumcraftSupportEnabled = config.getMiscBoolean("Enable internal Thaumcraft support", true);
+    if (thaumcraftSupportEnabled) {
+      ThaumcraftBiomeProvider.prepareThaumcraftSupport(config);
+    }
     config.save();
   }
 
   @Mod.EventHandler
   public void postInit(FMLPostInitializationEvent event) {
     NewDawnRegistry.registerProvider(new VanillaBiomeProvider());
+    if (this.thaumcraftSupportEnabled && Loader.isModLoaded("Thaumcraft")) {
+      NewDawnRegistry.registerProvider(new ThaumcraftBiomeProvider());
+      log.info("Internal Thaumcraft support enabled.");
+    }
   }
 
   @Mod.EventHandler

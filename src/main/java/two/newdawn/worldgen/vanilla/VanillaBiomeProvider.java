@@ -1,6 +1,6 @@
 /*
  */
-package two.newdawn.worldgen.biomes;
+package two.newdawn.worldgen.vanilla;
 
 import java.util.HashSet;
 import java.util.Set;

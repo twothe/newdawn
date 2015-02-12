@@ -1,6 +1,6 @@
 /*
  */
-package two.newdawn.worldgen.biomes;
+package two.newdawn.worldgen.vanilla;
 
 import net.minecraft.world.biome.BiomeGenBase;
 import two.newdawn.API.ChunkInformation;

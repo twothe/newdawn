@@ -19,6 +19,7 @@ public class Config {
 
   protected static final String CATEGORY_ALLOWED_RECIPES = "Allowed Recipes";
   protected static final String CATEGORY_VARIOUS_SETTINGS = "Settings";
+  protected static final String CATEGORY_THAUMCRAFT_SETTINGS = "Thaumcraft Compatibility";
   //--- Class ------------------------------------------------------------------
   protected static final String PREFIX_TILE = "tile."; // as in block.getUnlocalizedName()
   protected Configuration configuration;
@@ -91,6 +92,15 @@ public class Config {
     final String[] defaultValueStrings = blockListToBlockNames(defaultValue);
     final Property property = configuration.get(CATEGORY_VARIOUS_SETTINGS, key, defaultValueStrings, comment);
     return blockNamesToBlockList(property.getStringList());
+  }
+
+  public double getThaumcraftDouble(final String key, final double defaultValue) {
+    return getThaumcraftDouble(key, defaultValue, null);
+  }
+
+  public double getThaumcraftDouble(final String key, final double defaultValue, final String comment) {
+    final Property property = configuration.get(CATEGORY_THAUMCRAFT_SETTINGS, key, defaultValue, comment);
+    return property.getDouble(defaultValue);
   }
 
   public Configuration getConfiguration() {
