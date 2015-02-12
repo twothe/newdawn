@@ -56,6 +56,7 @@ import two.newdawn.API.noise.SimplexNoise;
 public class NewDawnTerrainGenerator implements IChunkProvider {
 
   protected static final boolean SHOW_MAP_FEATURES = true;
+  protected static final boolean SHOW_MAP_STUCTURES = false;
   protected static final boolean SHOW_MAP_DECORATION = true;
   /**
    * Reference to the World object.
@@ -106,7 +107,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
 //  private final TimeCounter timeDecoration = new TimeCounter("Decoration");
 
   public NewDawnTerrainGenerator(World world, long worldSeed, boolean useMapFeatures) {
-    this.baseValues = new WorldBaseValues(-0.5f, 0.5f, -0.5f, 0.5f, 0.17f, world.provider.getAverageGroundLevel());
+    this.baseValues = new WorldBaseValues(-0.5f, 0.5f, -0.5f, 0.6f, 0.18f, world.provider.getAverageGroundLevel());
     this.seedRandom = new Random(worldSeed);
     worldNoise = new SimplexNoise(seedRandom);
 
@@ -121,7 +122,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     this.temperatureRegionNoise = worldNoise.generateNoiseStretcher(2420.0, 2590.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
     this.humidityLocalNoise = worldNoise.generateNoiseStretcher(6.0, 7.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
     this.humidityAreaNoise = worldNoise.generateNoiseStretcher(320.0, 273.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
-    this.humidityRegionNoise = worldNoise.generateNoiseStretcher(880.0, 919.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
+    this.humidityRegionNoise = worldNoise.generateNoiseStretcher(1080.0, 919.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
     this.stretchForestSmallNoise = worldNoise.generateNoiseStretcher(93.0, 116.0, this.seedRandom.nextDouble(), this.seedRandom.nextDouble());
 
     biomeSelectors = NewDawnRegistry.getSelectors(worldNoise);
@@ -166,7 +167,7 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
 //    timeTerrain.stop();
 //    System.out.println(timeTerrain);
 //    timeDecoration.start();
-    generateMapFeatures(chunkX, chunkZ, chunkData);
+    generateCavesAndRavines(chunkX, chunkZ, chunkData);
 //    timeDecoration.stop();
 //    System.out.println(timeDecoration);
 
@@ -281,18 +282,6 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     throw new IllegalStateException("No biome was selected during world-gen for (" + blockX + ", " + blockY + ")!");
   }
 
-  protected void generateMapFeatures(final int chunkX, final int chunkZ, final Block[] chunkData) {
-    if (mapFeaturesEnabled) {
-      caveGenerator.func_151539_a(this, worldObj, chunkX, chunkZ, chunkData);
-      ravineGenerator.func_151539_a(this, worldObj, chunkX, chunkZ, chunkData);
-
-      mineshaftGenerator.func_151539_a(this, worldObj, chunkX, chunkZ, chunkData);
-      villageGenerator.func_151539_a(this, worldObj, chunkX, chunkZ, chunkData);
-      strongholdGenerator.func_151539_a(this, worldObj, chunkX, chunkZ, chunkData);
-      scatteredFeatureGenerator.func_151539_a(this, this.worldObj, chunkX, chunkZ, chunkData);
-    }
-  }
-
   /**
    * Checks to see if a chunk exists at x, y
    */
@@ -301,13 +290,20 @@ public class NewDawnTerrainGenerator implements IChunkProvider {
     return true;
   }
 
+  protected void generateCavesAndRavines(final int chunkX, final int chunkZ, final Block[] chunkData) {
+    if (mapFeaturesEnabled) {
+      caveGenerator.func_151539_a(this, worldObj, chunkX, chunkZ, chunkData);
+      ravineGenerator.func_151539_a(this, worldObj, chunkX, chunkZ, chunkData);
+    }
+  }
+
   /**
    * Populates chunk with ores etc etc
    */
   @Override
   public void populate(final IChunkProvider chunkProvider, final int chunkX, final int chunkZ) {
     BlockSand.fallInstantly = true;
-    
+
     final int blockX = chunkX * 16;
     final int blockZ = chunkZ * 16;
     final BiomeGenBase biomegenbase = this.worldObj.getBiomeGenForCoords(blockX + 16, blockZ + 16);

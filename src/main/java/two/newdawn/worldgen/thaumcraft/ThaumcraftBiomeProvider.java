@@ -22,14 +22,11 @@ public class ThaumcraftBiomeProvider implements NewDawnBiomeProvider {
 
   public static void prepareThaumcraftSupport(final Config config) {
     final double thaumcraftThresholdGood = config.getMiscDouble("Thaumcraft threshold good", 0.85, "Threshold value [0,1] for world generation at which point an area is considered good.\nHigher = less magical forest, lower = more magical forest.\n1.0 will effectively disable magical forests.");
-    final double thaumcraftThresholdEvil = config.getMiscDouble("Thaumcraft threshold evil", -0.80, "Threshold value [-1,0] for world generation at which point an area is considered evil.\nHigher = more eerie, lower = less eerie.\n-1.0 will effectively disable eerie.");
-    final double thaumcraftThresholdTaint = config.getMiscDouble("Thaumcraft threshold taint", -0.85, "Threshold value [-1,evil] for world generation at which point an area is considered tainted.\nHigher = more taint, lower = less taint.\n-1.0 will effectively disable taint.");
+    final double thaumcraftThresholdEvil = config.getMiscDouble("Thaumcraft threshold evil", -0.85, "Threshold value [-1,0] for world generation at which point an area is considered evil.\nHigher = more evil/taint, lower = less evil/taint.\n-1.0 will effectively disable evil/taint.");
+    final double thaumcraftThresholdTaint = thaumcraftThresholdEvil - 0.02;
 
     if ((thaumcraftThresholdEvil < -1.0) || (thaumcraftThresholdEvil > 0.0)) {
       throw new IllegalArgumentException("Thaumcraft threshold for evil must be within -1 and 0, but is: " + Double.toString(thaumcraftThresholdEvil));
-    }
-    if ((thaumcraftThresholdTaint < -1.0) || (thaumcraftThresholdTaint > thaumcraftThresholdEvil)) {
-      throw new IllegalArgumentException("Thaumcraft threshold for taint must be within -1 and evil threshold, but is: " + Double.toString(thaumcraftThresholdTaint));
     }
     if ((thaumcraftThresholdGood < 0.0) || (thaumcraftThresholdGood > 1.0)) {
       throw new IllegalArgumentException("Thaumcraft threshold for good must be within 0 and 1, but is: " + Double.toString(thaumcraftThresholdGood));
