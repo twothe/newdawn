@@ -1,0 +1,71 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Client",
+      "presentation": {
+        "group": "Mod Development - newdawn",
+        "order": 0
+      },
+      "projectName": "newdawn",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@C:\\Work\\Java\\Projekte\\mc-neoforge-newdawn\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@C:\\Work\\Java\\Projekte\\mc-neoforge-newdawn\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dnewdawn%%C:\\Work\\Java\\Projekte\\mc-neoforge-newdawn\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Server",
+      "presentation": {
+        "group": "Mod Development - newdawn",
+        "order": 1
+      },
+      "projectName": "newdawn",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@C:\\Work\\Java\\Projekte\\mc-neoforge-newdawn\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@C:\\Work\\Java\\Projekte\\mc-neoforge-newdawn\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dnewdawn%%C:\\Work\\Java\\Projekte\\mc-neoforge-newdawn\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "SmokeServer",
+      "presentation": {
+        "group": "Mod Development - newdawn",
+        "order": 2
+      },
+      "projectName": "newdawn",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@C:\\Work\\Java\\Projekte\\mc-neoforge-newdawn\\build\\moddev\\smokeServerRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@C:\\Work\\Java\\Projekte\\mc-neoforge-newdawn\\build\\moddev\\smokeServerRunVmArgs.txt",
+        "-Dfml.modFolders\u003dnewdawn%%C:\\Work\\Java\\Projekte\\mc-neoforge-newdawn\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\build\\smoke-server",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    }
+  ]
+}

@@ -1,63 +1,76 @@
-buildscript {
-    repositories {
-        mavenCentral()
-        maven {
-            name = "forge"
-            url = "http://files.minecraftforge.net/maven"
-        }
-        maven {
-            name = "sonatype"
-            url = "https://oss.sonatype.org/content/repositories/snapshots/"
+// NeoForge is confined to this integration module; terrain-core uses the JDK only.
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.147'
+}
+version = mod_version
+group = 'two.newdawn'
+base { archivesName = 'newdawn' }
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+neoForge {
+    version = project.neo_version
+    runs {
+        client { client() }
+        server { server(); programArgument '--nogui' }
+        smokeServer {
+            server()
+            gameDirectory = file(project.findProperty('smokeDirectory') ?: 'build/smoke-server')
+            programArgument '--nogui'
+            systemProperty 'newdawn.smokeTest', 'true'
+            if (project.hasProperty('benchmarkGeneration')) systemProperty 'newdawn.benchmarkGeneration', 'true'
         }
     }
-    dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:1.2-SNAPSHOT'
+    mods {
+        newdawn {
+            sourceSet sourceSets.main
+        }
     }
 }
-
-apply plugin: 'forge'
-
-version = "1710.1.0"
-group= "de.two.newdawn" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = "newdawn"
-
-minecraft {
-    version = "1.7.10-10.13.2.1291"
-    runDir = "run"
-}
-
 dependencies {
-    // you may put jars on which you depend on in ./libs
-    // or you may define them like so..
-    //compile "some.group:artifact:version:classifier"
-    //compile "some.group:artifact:version"
-      
-    // real examples
-    //compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
-    //compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
-
-    // for more info...
-    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
-    // http://www.gradle.org/docs/current/userguide/dependency_management.html
-
+    implementation project(':terrain-core')
+    // Plain Java libraries must be explicit on the development launcher's classpath.
+    additionalRuntimeClasspath project(':terrain-core')
 }
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 21 }
+tasks.named('processResources') {
+    inputs.property 'version', project.version
+    filesMatching('META-INF/neoforge.mods.toml') { expand version: project.version }
+}
+tasks.named('jar') {
+    from project(':terrain-core').sourceSets.main.output
+    exclude 'two/newdawn/integration/Smoke*'
+}
+tasks.named('check') { dependsOn ':terrain-core:check' }
 
-processResources
-{
-    // this will ensure that this task is redone when the versions change.
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.minecraft.version
-
-    // replace stuff in mcmod.info, nothing else
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-                
-        // replace version and mcversion
-        expand 'version':project.version, 'mcversion':project.minecraft.version
-    }
-        
-    // copy everything else, thats not the mcmod.info
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
+// Verify the actual distribution: the core is embedded and development fixtures are absent.
+tasks.register('verifyJar') {
+    dependsOn tasks.named('jar')
+    def archive = tasks.named('jar', Jar).flatMap { it.archiveFile }
+    inputs.file archive
+    doLast {
+        new java.util.zip.ZipFile(archive.get().asFile).withCloseable { zip ->
+            [
+                'two/newdawn/NewDawn.class',
+                'two/newdawn/terrain/TerrainSampler.class',
+                'two/newdawn/terrain/SimplexNoise.class',
+                'two/newdawn/integration/NewDawnChunkGenerator.class',
+                'META-INF/neoforge.mods.toml',
+                'data/newdawn/worldgen/world_preset/new_dawn.json',
+                'data/newdawn/worldgen/world_preset/vanilla.json',
+                'data/minecraft/worldgen/world_preset/normal.json',
+                'data/minecraft/tags/worldgen/world_preset/normal.json'
+            ].each { name ->
+                if (zip.getEntry(name) == null) throw new GradleException("Missing release entry: $name")
+            }
+            zip.entries().each { entry ->
+                if (entry.name.contains('/Smoke') || entry.name.contains('legacy-terrain') || entry.name.endsWith('.java')) {
+                    throw new GradleException("Development entry leaked into release: ${entry.name}")
+                }
+            }
+            def metadata = zip.getInputStream(zip.getEntry('META-INF/neoforge.mods.toml')).getText('UTF-8')
+            if (!metadata.contains('version="' + project.version + '"')) throw new GradleException('Unexpanded release version')
+        }
+        logger.lifecycle('PASS: release jar contains terrain core, world preset and expanded metadata; no development fixtures')
     }
 }
+tasks.named('check') { dependsOn 'verifyJar' }

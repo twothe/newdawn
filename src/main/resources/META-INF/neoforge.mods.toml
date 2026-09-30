@@ -1,0 +1,21 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="All Rights Reserved"
+[[mods]]
+modId="newdawn"
+version="${version}"
+displayName="New Dawn"
+authors="Stefan Feldbinder (Two)"
+description='''Smooth, varied legacy Simplex terrain with vanilla biome integration.'''
+[[dependencies.newdawn]]
+modId="neoforge"
+type="required"
+versionRange="[21.1.250,21.2)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.newdawn]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1]"
+ordering="NONE"
+side="BOTH"

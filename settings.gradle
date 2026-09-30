@@ -1,0 +1,4 @@
+// Keep the terrain algorithm buildable without a Minecraft dependency.
+pluginManagement { repositories { gradlePluginPortal() } }
+rootProject.name = 'newdawn'
+include 'terrain-core'

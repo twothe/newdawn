@@ -1,0 +1,27 @@
+// Standalone algorithm and regression runner; intentionally no game or test-framework dependencies.
+plugins { id 'java-library' }
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 21 }
+tasks.register('regressionTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'two.newdawn.terrain.TerrainRegressionTest'
+}
+tasks.register('benchmark', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'two.newdawn.terrain.TerrainBenchmark'
+}
+tasks.named('test') { enabled = false }
+tasks.register('allocationTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'two.newdawn.terrain.TerrainBenchmark'
+    args '--verify-allocations'
+}
+tasks.register('biomeTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'two.newdawn.terrain.BiomeRegressionTest'
+}
+tasks.named('check') { dependsOn regressionTest, allocationTest, biomeTest }
