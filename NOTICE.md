@@ -1,7 +1,7 @@
 # Attribution
 
-The terrain algorithm originates from Stefan Feldbinder's (Two) New Dawn mod for
-Forge 1.7.10. The original sources are outside this project and have not been modified.
+New Dawn is developed by Two. This version continues the terrain algorithm from
+the project's Forge 1.7.10 version.
 
 The Simplex implementation is based on code released into the public domain by
 Stefan Gustavson, with optimizations by Peter Eastman. The original attribution is

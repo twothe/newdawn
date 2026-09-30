@@ -1,6 +1,7 @@
 # Behaviour
 
-- This is an international project. Use English for all project documentation, end-user communication, user-facing text, source code and tool output.
+- Communicate with the user in German in this chat. Use English for all project documentation, end-user communication, user-facing text, source code and tool output.
+- Credit the project author as Two; do not include the author's real name in project files or user-facing metadata.
 - Keep the mod version at 1.0.0 until the final release unless the user explicitly changes this decision.
 - Read `docs/architecture.md` before changing generation. Preserve the legacy noise initialization order and arithmetic; golden fixtures guard this contract.
 - Minor generation/detail variations are accepted by the user. Preserve terrain character, performance and thread safety; exact full-world decoration equality is not an acceptance criterion.
@@ -13,7 +14,7 @@
 
 # Project Overview
 
-New Dawn ports Stefan Feldbinder's Forge 1.7.10 terrain generator to NeoForge / Minecraft 1.21.1. Vanilla biome registry entries retain normal decoration, structures and mod biome modifiers.
+New Dawn is a terrain generation mod for NeoForge / Minecraft 1.21.1, continuing the project's Forge 1.7.10 version. Vanilla biome registry entries retain normal decoration, structures and mod biome modifiers.
 
 # Documentation Index
 

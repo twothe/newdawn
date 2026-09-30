@@ -5,7 +5,7 @@ license="All Rights Reserved"
 modId="newdawn"
 version="${version}"
 displayName="New Dawn"
-authors="Stefan Feldbinder (Two)"
+authors="Two"
 description='''Smooth, varied legacy Simplex terrain with vanilla biome integration.'''
 [[dependencies.newdawn]]
 modId="neoforge"

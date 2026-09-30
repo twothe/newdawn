@@ -1,7 +1,8 @@
 # New Dawn – NeoForge 1.21.1
 
-A port of Stefan Feldbinder's (Two) original Forge 1.7.10 terrain generator.
-The Simplex noise composition, terrain heights, mountains and climate values are preserved.
+New Dawn is a terrain generation mod for Minecraft, now available for NeoForge 1.21.1.
+It continues the Forge 1.7.10 version, preserving its distinctive Simplex noise composition,
+terrain heights, mountains and climate values.
 An independent Java core computes the terrain; Minecraft handles the subsequent stages
 using vanilla biomes, cave carvers, decoration, ores, structures and mobs.
 All 51 non-river overworld biomes are selected according to climate, elevation and depth.
