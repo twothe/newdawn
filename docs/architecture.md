@@ -1,145 +1,142 @@
-# Architektur und Terrain-Vertrag
+# Architecture and terrain contract
 
-## Aufteilung
+## Components
 
-`terrain-core` ist ein Java-21-Modul ohne externe Abhängigkeiten. `TerrainSampler` und
-`BiomePalette` enthalten die Generierungsregeln. `TerrainColumn` und `TerrainChunk` sind
-wiederverwendbare, aufrufereigene Ergebnispuffer; `TerrainSample` bleibt als unveränderlicher
-Snapshot verfügbar. Der Compiler dieses Moduls kennt keine Minecraft- oder NeoForge-Klassen.
+`terrain-core` is a Java 21 module with no external dependencies. `TerrainSampler` and
+`BiomePalette` contain the generation rules. `TerrainColumn` and `TerrainChunk` are
+reusable, caller-owned output buffers; `TerrainSample` remains available as an immutable
+snapshot. This module compiles without any Minecraft or NeoForge classes.
 
-`NewDawnBiomeSource` übersetzt die Auswahl in Vanilla-Biome-Holder aus der Registry.
-`NewDawnChunkGenerator` erweitert die vorhandene `NoiseBasedChunkGenerator`-Pipeline und
-ersetzt Biombefüllung, Rohterrain, Oberfläche und Höhenabfragen. Die Vererbung ist hier
-auch funktional wichtig: Minecraft erzeugt für Noise-Generatoren den `RandomState` aus
-den zugehörigen Noise-Settings. Carver, Strukturen, Features und Mob-Generierung bleiben
-in der vorhandenen Pipeline. Die Carver-Anbindung übergibt zusätzlich eine an das eigene
-Relief gebundene Wassergrenze; siehe [biomes.md](biomes.md).
+`NewDawnBiomeSource` resolves selections to registry-owned vanilla biome holders.
+`NewDawnChunkGenerator` extends the existing `NoiseBasedChunkGenerator` pipeline and
+replaces biome filling, raw terrain, surface generation and height queries. Inheritance
+also serves a functional purpose: Minecraft creates a noise generator's `RandomState`
+from its associated noise settings. Carvers, structures, features and mob generation
+remain in the existing pipeline. The carver integration additionally supplies a water
+boundary based on our terrain; see [biomes.md](biomes.md).
 
-Nur `NewDawn` registriert die Codecs über NeoForge. Es gibt keine Mixins, Reflection,
-Access Transformer, globalen World-Cache oder Versionsadapter-Hierarchie.
+Only `NewDawn` registers codecs through NeoForge. There are no mixins, reflection,
+access transformers, global world cache or hierarchy of version adapters.
 
-## Standard-Welttyp und Vanilla-Auswahl
+## Default world type and vanilla selection
 
-Minecraft 1.21.1 verwendet beim Öffnen einer neuen Welt `minecraft:normal`. Derselbe
-Schlüssel ist der Standardwert für `level-type` auf dedizierten Servern. Die Datei
-`data/minecraft/worldgen/world_preset/normal.json` hinterlegt dort deshalb den
-New-Dawn-Generator. `newdawn:new_dawn` bleibt als expliziter, kompatibler Schlüssel erhalten.
+Minecraft 1.21.1 uses `minecraft:normal` when opening the new-world screen. The same key
+is the default `level-type` on dedicated servers. The file
+`data/minecraft/worldgen/world_preset/normal.json` therefore assigns the New Dawn
+generator to that preset. `newdawn:new_dawn` remains available as an explicit,
+backward-compatible key.
 
-Das unveränderte Vanilla-Preset liegt zusätzlich unter `newdawn:vanilla` und wird dem
-normalen Auswahl-Tag hinzugefügt. Der Standard heißt im Menü „New Dawn“, die Alternative
-„Vanilla“. Der ursprüngliche New-Dawn-Schlüssel wird nicht zusätzlich im Menü aufgeführt,
-damit kein doppelter Eintrag entsteht. Andere Vanilla-Welttypen bleiben erhalten.
+The unchanged vanilla preset is also available as `newdawn:vanilla` and is added to the
+normal selection tag. The default is labeled "New Dawn" in the menu; the alternative
+is labeled "Vanilla". The original New Dawn key is not listed separately, avoiding a
+duplicate menu entry. Other vanilla world types remain available.
 
-Diese Änderung betrifft Presets für neue Welten. Bereits gespeicherte Dimensionen
-behalten ihren Generator. Nether und Ende verwenden in beiden Presets Vanilla.
-Datapacks oder Mods, die ebenfalls `minecraft:normal` ersetzen, konkurrieren um
-denselben Eintrag; dann entscheidet die Datenpaket-Priorität. Es wird kein globaler
-Generator zur Laufzeit ausgetauscht und keine Client-API benötigt.
+This changes presets for new worlds. Saved dimensions keep their existing generator.
+Both presets use vanilla generation for the Nether and End. Datapacks or mods that
+also replace `minecraft:normal` compete for the same entry; datapack priority determines
+which one wins. No global generator is replaced at runtime, and no client API is needed.
 
-## Erhaltener Algorithmus
+## Preserved algorithm
 
-- `java.util.Random(seed)` initialisiert wie bisher 1024 Zufallsbytes für das Simplex-Feld.
-  Dieses historische Feld ist **keine** gewöhnliche 256er-Permutation. Ein Austausch
-  gegen eine andere Simplex-Bibliothek würde andere Welten erzeugen.
-- Alle 13 allgemeinen Noise-Felder und anschließend vier Berg-Felder werden in derselben
-  Reihenfolge initialisiert. Selbst das Filler-Feld beeinflusst durch seinen Verbrauch von
-  Zufallszahlen die späteren Klima- und Berg-Felder.
-- Skalen, Offsets, Gewichte, Rechenreihenfolge, Rundung, Höhenbegrenzung und Float-Konversion
-  entsprechen dem Original. Der Faktor `BLOCK_SCALE=2` gehört zur Geländeform und wird
-  deshalb nicht aus der heutigen Bauhöhe abgeleitet.
-- Ground Level bleibt 64: Y=63 ist der oberste Wasserblock; eine Terrainhöhe von 64
-  bezeichnet den ersten freien Block über festem Boden bei Y=63.
-- Temperatur- und Feuchtigkeitsfelder einschließlich Höhenabsenkung und Waldinseln bleiben
-  erhalten. Die Biomauswahl wurde auf alle 51 Nicht-Fluss-Biome der heutigen Oberwelt
-  erweitert; ihre Klima-, Höhen- und Tiefenregeln stehen in [biomes.md](biomes.md).
-- Die Bergform wurde absichtlich nicht neu entworfen. Es gibt weiterhin keine Flusslogik.
-  Ebenso bleiben die horizontalen Skalen erhalten, die den ursprünglichen Terrainwechsel
-  innerhalb der üblichen Sichtweite bestimmen.
+- `java.util.Random(seed)` initializes 1,024 random bytes for the Simplex field as before.
+  This historical field is **not** a standard 256-entry permutation. Replacing it with
+  another Simplex library would produce different worlds.
+- All 13 general noise fields, followed by four mountain fields, are initialized in the
+  original order. Even the filler field affects later climate and mountain fields by
+  consuming random numbers during initialization.
+- Scales, offsets, weights, arithmetic order, rounding, height clamping and float conversion
+  match the original. `BLOCK_SCALE=2` is part of the terrain shape and is deliberately
+  independent of the modern build height.
+- Ground level remains 64: Y=63 is the top water block; a terrain height of 64 means
+  the first free block above solid ground at Y=63.
+- Temperature and humidity fields, including altitude correction and forest patches,
+  are preserved. Biome selection now covers all 51 non-river overworld biomes; climate,
+  elevation and depth rules are documented in [biomes.md](biomes.md).
+- Mountain shapes have deliberately not been redesigned. River generation is still absent.
+  Horizontal scales that determine the original terrain variation within a typical view
+  distance are also preserved.
 
-30.720 Referenzpunkte aus dem separat kompilierten Originalcode sichern diese Regeln ab.
-Das Originalprojekt wird weder verändert noch beim normalen Build benötigt.
+A set of 30,720 reference points captured from the separately compiled original code
+protects these rules. The original project is neither modified nor needed for normal builds.
 
-## Seed und Nebenläufigkeit
+## Seed ownership and concurrency
 
-Minecraft ruft `createState` bei der Einrichtung der Chunk-Pipeline mit dem Weltseed auf.
-Dort wird die BiomeSource einmalig initialisiert; ihr unveränderlicher Sampler wird über
-ein `volatile`-Feld sicher veröffentlicht. Eine spätere Initialisierung mit anderem Seed
-schlägt ausdrücklich fehl. Bei einem Neustart dekodiert Minecraft den Generator und bindet
-erneut den gespeicherten Weltseed. Kein hart codierter Seed wird im Preset gespeichert.
+Minecraft calls `createState` with the world seed when setting up the chunk pipeline.
+The BiomeSource is initialized once there; its immutable sampler is safely published
+through a `volatile` field. Subsequent initialization with a different seed fails explicitly.
+On restart, Minecraft decodes the generator and binds the saved world seed again.
+The preset does not store a hard-coded seed.
 
-Der Kern benötigt beim Sampling weder Locks noch RNG-Aufrufe. `sampleInto` und
-`sampleChunkInto` schreiben ohne Allokationen in exklusive Puffer des Aufrufers;
-`sampleHeight` überspringt Klima und Filler. Die bisherigen Snapshot-Methoden bleiben
-verfügbar. Höhenabhängige Klimakorrekturen werden einmal für alle 255 möglichen Höhen
-mit der ursprünglichen Formel vorberechnet. Die BiomeSource besitzt je Worker einen auf 256 Einträge
-begrenzten Cache mit vollständigen Koordinatenschlüsseln; Kollisionen verändern keine
-Ergebnisse. Er vermeidet wiederholte Klimaberechnung für vertikale Biome-Quarts und berechnet
-bei isolierten Carver-Abfragen nur die tatsächlich abgefragte Spalte. Cache-Misses verwenden
-einen eigenen `TerrainColumn` pro Worker.
+Core sampling requires neither locks nor RNG calls. `sampleInto` and `sampleChunkInto`
+write into exclusive caller-owned buffers without allocations; `sampleHeight` skips
+climate and filler calculations. The previous snapshot methods remain available.
+Altitude-dependent climate corrections are precomputed once for all 255 possible heights
+using the original formula. The BiomeSource maintains a cache of at most 256 entries per
+worker, using full coordinate keys; collisions cannot change results. This avoids repeated
+climate calculations for vertical biome quarts and samples only the requested column for
+isolated carver queries. Cache misses use a worker-owned `TerrainColumn`.
 
-Die Liste möglicher Biome wird nach Registry-ID sortiert. Das ist Teil des deterministischen
-Weltvertrags: Minecraft weist Features in Biome-Reihenfolge Indizes zu und verwendet diese
-als Teil der Zufallsseeds. Die nicht zugesicherte Iterationsreihenfolge von `Map.copyOf`
-würde sonst trotz identischem Weltseed nach einem JVM-Neustart andere Dekoration erzeugen.
-Der Servertest sichert diese Reihenfolge ausdrücklich ab. Kleine Unterschiede bei der
-vollständigen Minecraft-Dekoration sind nach der abgestimmten Anforderung zulässig;
-der eigene Terrain-/Klimakern bleibt deterministisch.
+Possible biomes are sorted by registry ID. This is part of the deterministic world contract:
+Minecraft assigns feature indices in biome encounter order and uses those indices in
+random seeds. The unspecified iteration order of `Map.copyOf` could otherwise change
+decoration after a JVM restart despite an identical world seed. The server check explicitly
+verifies this order. Small differences in complete Minecraft decoration are acceptable
+under the agreed requirements; our terrain and climate core remains deterministic.
 
-Minecraft verwaltet die Chunk-Tasks. Der Mod startet keine zusätzliche Thread-Pipeline.
-Ein Task schreibt nur seinen eigenen Chunk. Sein primitiver Chunk-Puffer wird pro Aufruf
-angelegt; er verwendet keinen gemeinsamen Pool und keinen wiederverwendeten ThreadLocal-
-Chunk-Puffer, der bei verschachtelten Aufrufen überschrieben werden könnte.
+Minecraft manages chunk tasks. The mod does not start another thread pipeline.
+Each task writes only its own chunk. Its primitive chunk buffer is allocated per invocation;
+there is no shared pool or reused thread-local chunk buffer that nested calls could overwrite.
 
-Die Rohbefüllung bestimmt Materialintervalle einmal pro Spalte. Vollständig gleichförmige
-Gesteins-Sections oberhalb der Bedrock-Schicht und unterhalb aller Filler-Anfänge werden
-als kompakte Eintrag-Paletten angelegt. Der öffentliche `LevelChunkSection`-Konstruktor
-berechnet ihre Blockzähler; vorhandene Biome-Container bleiben erhalten. Die exklusiv
-besessenen Sections werden vor den verbleibenden Einzelblock-Schreibzugriffen gesperrt.
-Leere Sections oberhalb des Geländes bleiben unberührt. Höhenkarten und Base-Column-Abfragen
-verwenden dieselben Materialgrenzen. Die direkte Höhenabfrage benötigt nur das Höhenfeld,
-weil alle aktuellen Palettenmaterialien von sämtlichen Vanilla-Höhenprädikaten erfasst
-werden; die Behandlung von Wasser hängt vom angefragten Heightmap-Typ ab.
-Biome-Dekoration und andere Minecraft-/Fremdmod-Aufrufe werden nicht eigenständig parallelisiert.
+Raw fill determines material intervals once per column. Entirely uniform rock sections
+above the bedrock layer and below every column's filler start are created as compact
+single-entry palettes. The public `LevelChunkSection` constructor computes their block
+counts; existing biome containers are preserved. Exclusively owned sections are locked
+before the remaining individual block writes. Empty sections above the terrain remain
+untouched. Heightmaps and base-column queries use the same material boundaries.
+Direct height queries need only the height field because all current palette materials
+satisfy every vanilla solid-height predicate; water inclusion depends on the requested
+heightmap type. Biome decoration and other Minecraft or third-party mod calls are not
+parallelized independently.
 
-API-Beispiele, Messmethodik und Ergebnisse stehen in [performance.md](performance.md).
+API examples, measurement methods and results are in [performance.md](performance.md).
 
-## Bewusste Unterschiede und Kompatibilitätsgrenzen
+## Intentional differences and compatibility limits
 
-- Die Oberfläche entspricht den alten Höhen; darunter reicht die Welt jetzt bis Y=−64.
-  Unter Y=0 liegt Deepslate, bei Y=−64 eine geschlossene Bedrock-Schicht. Der unregelmäßige
-  alte Bedrock-Bereich bei Y=0 entfällt. Oben gilt die normale Baugrenze 320; das eigentliche
-  Legacy-Terrain bleibt wie früher auf Höhen 1–255 begrenzt.
-- Minecraft speichert Biome heute auf einem Quart-Raster mit geglätteter Abfrage. Die
-  Oberflächenmaterialien werden weiterhin blockgenau aus dem ursprünglichen Klima gewählt.
-  Biome, Features, Bäume, Wetter und Höhlen sind daher keine blockidentische 1.7.10-Kopie.
-- `BiomePalette` wählt heutige Vanilla-Biome anhand der alten Terrain-/Klimafelder und
-  ergänzt tiefenabhängige Höhlenbiome. Historische Biomnamen in den Original-Fixtures
-  werden nicht mehr als erwartete moderne Auswahl geprüft.
-- Normale Vanilla-Biome-Holder behalten NeoForge-Biome-Modifier und deren Features.
-  Eigene Mod-Biome werden nicht automatisch in die Auswahl aufgenommen. Die alte
-  Thaumcraft-Anbindung und das alte Forge-Erweiterungs-API werden nicht mitportiert.
-- Die normalen Carver und Aquifere werden genutzt; die große moderne 3D-Noise-Höhlenpassage
-  und Noise-Erzadern aus `fillFromNoise` werden nicht ausgeführt. Reguläre Erz-Features laufen.
-  Unterirdische Aquifere verwenden moderne Vanilla-Noise-Felder. Im ursprünglichen
-  Oberflächenwasserbereich hat die eigene Terrainhöhe Vorrang, damit Carver dort kein
-  Wasser aufgrund der abweichenden Vanilla-Oberflächenschätzung durch Luft ersetzen.
-- Oberflächen werden in einem Durchgang aus der Legacy-Palette aufgebaut. Änderungen
-  ausschließlich an Vanilla-Surface-Rules verändern diese Oberfläche nicht. Moderne
-  Struktur-Terrainanpassung durch die Vanilla-Beardifier-Dichte ist ebenfalls nicht Teil
-  dieses Höhenfeldes; ein generiertes Dorf ist geprüft, die Einbettung aller Strukturtypen
-  und Fremdmods ist keine zugesicherte Eigenschaft.
-- Alte Chunk-Blending-Daten werden nicht ausgewertet. Der Port ist für neue Welten gedacht.
-  Beliebige Mods, die den Noise-Router oder die komplette Terrainpipeline ersetzen, brauchen
-  eine eigene Kompatibilitätsprüfung. Vanilla-Biome sind eine gute Integrationsbasis,
-  aber keine pauschale Garantie für alle Mods.
+- The surface follows the old heights, while the world now extends down to Y=−64.
+  Deepslate lies below Y=0, with a continuous bedrock layer at Y=−64. The old irregular
+  bedrock region at Y=0 is omitted. The upper build limit is the normal 320; legacy
+  terrain heights remain clamped to 1–255.
+- Minecraft now stores biomes on a quart grid with smoothed queries. Surface materials
+  are still selected per block from the original climate. Biomes, features, trees,
+  weather and caves are therefore not a block-for-block copy of 1.7.10.
+- `BiomePalette` selects modern vanilla biomes using the legacy terrain/climate fields
+  and adds depth-dependent cave biomes. Historical biome names in the original fixtures
+  are no longer asserted as the expected modern selection.
+- Registry-owned vanilla biome holders retain NeoForge biome modifiers and their features.
+  Custom mod biomes are not selected automatically. The old Thaumcraft integration and
+  Forge extension API are not ported.
+- Standard carvers and aquifers are used; the modern large 3D noise-cave pass and noise
+  ore veins from `fillFromNoise` are not executed. Regular ore features still run.
+  Underground aquifers use modern vanilla noise fields. Within the original surface-water
+  envelope, our terrain height takes precedence so carvers cannot replace water with air
+  based on the different vanilla surface estimate.
+- Surfaces are built in one pass from the biome palette. Changes limited to vanilla
+  surface rules do not affect this surface. Modern structure terrain adjustment using
+  vanilla Beardifier density is also not part of this height field. A generated village
+  has been checked; suitable placement of every structure type and third-party mod
+  structure is not guaranteed.
+- Old chunk-blending data are not evaluated. The port is intended for new worlds.
+  Mods that replace the noise router or the entire terrain pipeline require separate
+  compatibility checks. Vanilla biomes provide an integration basis, not a blanket
+  compatibility guarantee for all mods.
 
-## Künftige Versionen
+## Future versions
 
-Innerhalb Minecraft 1.21.1 wird NeoForge über `neo_version` in `gradle.properties` gewählt.
-Der Kern bleibt unverändert. Bei einer neuen Minecraft-Version sind Loader-Metadaten,
-Pack-Format, Preset-/Noise-Settings-Daten und die wenigen direkten Minecraft-Schnittstellen
-zu prüfen; danach Build, Referenztests und Serverprüfung ausführen.
+Within Minecraft 1.21.1, select NeoForge through `neo_version` in `gradle.properties`.
+The core remains unchanged. For a new Minecraft version, review loader metadata,
+pack format, preset/noise-settings data and the few direct Minecraft interfaces;
+then run the build, reference tests and server checks.
 
-Eine unveränderte Binärdatei für unbekannte zukünftige Minecraft-Versionen wird nicht
-versprochen. Die Architektur begrenzt den Anpassungsaufwand auf die Spielanbindung,
-ohne vorsorglich für jede Version eine eigene Abstraktionsschicht anzulegen.
+Binary compatibility with unknown future Minecraft versions is not promised.
+The architecture limits adaptation to the game integration without preemptively
+introducing a separate abstraction layer for each version.

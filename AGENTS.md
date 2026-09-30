@@ -1,6 +1,6 @@
 # Behaviour
 
-- User communication and project documentation are German; source code and tool output are English.
+- This is an international project. Use English for all project documentation, end-user communication, user-facing text, source code and tool output.
 - Keep the mod version at 1.0.0 until the final release unless the user explicitly changes this decision.
 - Read `docs/architecture.md` before changing generation. Preserve the legacy noise initialization order and arithmetic; golden fixtures guard this contract.
 - Minor generation/detail variations are accepted by the user. Preserve terrain character, performance and thread safety; exact full-world decoration equality is not an acceptance criterion.

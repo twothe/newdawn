@@ -1,112 +1,113 @@
-# Biome, Höhenlagen und Wassergrenze
+# Biomes, elevations and water boundaries
 
-New Dawn verwendet alle **51 Vanilla-Oberweltbiome von Minecraft 1.21.1 außer River und
-Frozen River**. Die Auswahl ist deterministisch und verwendet die vorhandenen Temperatur-,
-Feuchtigkeits-, Höhen-, Regionalhöhen- und Bergwerte. Es gibt keine zusätzlichen Noise-
-Abfragen für die Auswahl und keine Zufallsentscheidung je Block. Nether und Ende bleiben Vanilla.
+New Dawn uses all **51 non-river vanilla overworld biomes in Minecraft 1.21.1**; River
+and Frozen River are excluded. Selection is deterministic and uses the existing
+temperature, humidity, height, regional-height and mountain values. It requires no
+additional noise queries or per-block random decisions. The Nether and End remain vanilla.
 
-## Klimatische Verteilung
+## Climate distribution
 
-Die Werte sind dimensionslose Noise-Werte, keine Grad-Celsius-Angaben. Temperatur und
-Feuchtigkeit enthalten weiterhin die ursprüngliche höhenabhängige Korrektur.
+These are dimensionless noise values, not degrees Celsius. Temperature and humidity
+still include the original altitude correction.
 
-| Bereich | Auswahl |
+| Region | Selection |
 | --- | --- |
-| Ozean: Temperatur ≤ −0,5 | Frozen Ocean / Deep Frozen Ocean |
-| Ozean: −0,5 < Temperatur < −0,2 | Cold Ocean / Deep Cold Ocean |
-| Ozean: −0,2 ≤ Temperatur < 0,25 | Ocean / Deep Ocean |
-| Ozean: 0,25 ≤ Temperatur < 0,55 | Lukewarm Ocean / Deep Lukewarm Ocean |
-| Ozean: Temperatur ≥ 0,55 | Warm Ocean; Vanilla besitzt kein Deep Warm Ocean |
-| Kaltes Land | Snowy Plains, Snowy Taiga; bei sehr trockener Kälte Ice Spikes |
-| Kühles Land | Plains, Taiga, Old Growth Pine/Spruce Taiga mit zunehmender Feuchtigkeit |
-| Gemäßigtes Land | Sunflower Plains, Plains, Flower Forest, Birch Forest, Old Growth Birch Forest, Forest, Dark Forest entlang der Feuchtigkeitskurve |
-| Warmes/heißes Land | Trockene Savannen/Wüsten, Sparse Jungle, Jungle und feuchter Bamboo Jungle |
-| Feuchtes Tiefland auf Höhe 64–68 | Swamp, bei Temperatur ≥ 0,4 Mangrove Swamp |
-| Seltene gemäßigte, sehr feuchte Landflächen in tiefen regionalen Becken | Mushroom Fields |
+| Ocean: temperature ≤ −0.5 | Frozen Ocean / Deep Frozen Ocean |
+| Ocean: −0.5 < temperature < −0.2 | Cold Ocean / Deep Cold Ocean |
+| Ocean: −0.2 ≤ temperature < 0.25 | Ocean / Deep Ocean |
+| Ocean: 0.25 ≤ temperature < 0.55 | Lukewarm Ocean / Deep Lukewarm Ocean |
+| Ocean: temperature ≥ 0.55 | Warm Ocean; vanilla has no Deep Warm Ocean |
+| Cold land | Snowy Plains, Snowy Taiga; Ice Spikes in very dry, cold areas |
+| Cool land | Plains, Taiga, Old Growth Pine/Spruce Taiga as humidity increases |
+| Temperate land | Sunflower Plains, Plains, Flower Forest, Birch Forest, Old Growth Birch Forest, Forest, Dark Forest along the humidity curve |
+| Warm/hot land | Dry savannas/deserts, Sparse Jungle, Jungle and humid Bamboo Jungle |
+| Humid lowlands at heights 64–68 | Swamp; Mangrove Swamp at temperature ≥ 0.4 |
+| Rare temperate, very humid land in low regional basins | Mushroom Fields |
 
-Ozeanbiome gelten unter Terrainhöhe 63; unter Höhe 60 wird die tiefe Variante gewählt.
-Das folgt der relativ flachen alten Höhenlandschaft: „Deep“ ist eine relative Einordnung
-und erzeugt keine zusätzliche Vertiefung. Höhe 63/64 bildet den Strandbereich; tiefe
-Feuchtgebiete und seltene Pilzflächen können diesen auf Land überlagern. Niedrige
-Bergflanken bis Höhe 68 erhalten Stony Shore.
+Ocean biomes apply below terrain height 63; below height 60, the deep variant is selected.
+This follows the relatively shallow legacy terrain: "deep" is a relative classification
+and does not make the terrain deeper. Heights 63/64 form the beach band; low wetlands and
+rare mushroom areas can override that band on land. Low mountain flanks up to height 68
+receive Stony Shore.
 
-Oberflächen passen zum Biom: unter anderem Sand in warmen Ozeanen, Kies in kühleren,
-Myzel auf Pilzflächen, Podzol in alten Taigawäldern, Schlamm in Mangrovengebieten,
-roter Sand/Terrakotta in Badlands sowie Schnee-/Eisblöcke in kalten Höhenbiomen.
+Surface materials match the biome: sand in warm oceans, gravel in cooler oceans, mycelium
+in mushroom fields, podzol in old-growth taigas, mud in mangrove areas, red sand/terracotta
+in badlands, and snow/ice blocks in cold mountain biomes.
 
-## Höhenbiome
+## Mountain biomes
 
-Die Schwellen passen zum bestehenden Terrain, dessen interessante Berge deutlich unter
-den hohen Vanilla-Gipfeln liegen. Die Geländeform selbst wird nicht geändert.
+Thresholds fit the existing terrain, whose mountains are considerably lower than tall
+vanilla peaks. The terrain shape itself is unchanged.
 
-- Ab Höhe 82, beziehungsweise ab 76 bei vorhandener Bergmarkierung, gilt die Höhenauswahl.
-- Kalte, feuchte mittlere Höhen tragen Grove; trockenere oder höhere kalte Lagen Snowy Slopes.
-- Gemäßigte Höhen tragen Meadow oder bei passender Wärme/Feuchtigkeit Cherry Grove.
-  Trockene und sehr feuchte Varianten werden Windswept Hills, Gravelly Hills oder Forest.
-- Warme Höhen werden je nach Feuchtigkeit Badlands, Eroded/Wooded Badlands,
-  Windswept Savanna oder Savanna Plateau.
-- Ab Höhe 104 liegen die Gipfelbiome: wärmeres Stony Peaks, ansonsten trockenes Frozen
-  Peaks beziehungsweise feuchteres Jagged Peaks.
+- Highland selection starts at height 82, or at 76 when the mountain flag is set.
+- Cold, humid intermediate elevations receive Grove; drier or higher cold areas receive
+  Snowy Slopes.
+- Temperate highlands receive Meadow, or Cherry Grove with suitable warmth and humidity.
+  Dry and very humid variants become Windswept Hills, Gravelly Hills or Forest.
+- Warm highlands become Badlands, Eroded/Wooded Badlands, Windswept Savanna or Savanna
+  Plateau depending on humidity.
+- Peak biomes start at height 104: warmer areas receive Stony Peaks; other areas receive
+  Frozen Peaks when dry or Jagged Peaks when more humid.
 
-Die Namen bedeuten keine neue Bergform: Gipfel bleiben durch das bisherige Höhenfeld
-geformt. Flussbiome fehlen bewusst, solange kein tatsächliches Flusssystem existiert.
+These names do not introduce new mountain shapes: peaks still follow the existing height
+field. River biomes are deliberately excluded until actual river generation exists.
 
-## Höhlenbiome ohne zusätzliche 3D-Noises
+## Cave biomes without additional 3D noise
 
-Oberhalb der Höhlengrenze bleibt das Oberflächenbiom erhalten. Die Grenze liegt bei
-`min(40, Terrainhöhe − 20)`: Mindestens 20 Blöcke Gestein trennen die Höhlenbiome von
-der Oberfläche, auch unter tiefen Ozeanen. Die Minecraft-Quart-Auflösung und die normale
-Biome-Abfrageglättung gelten weiterhin.
+The surface biome is retained above the cave ceiling, which is
+`min(40, terrainHeight − 20)`. Cave biomes start at least 20 blocks below the terrain
+surface, including beneath deep oceans. Minecraft's quart resolution and normal biome
+query smoothing still apply.
 
-- Feuchte, nicht zu kalte Spalten erhalten Lush Caves.
-- Mäßig trockene bis mäßig feuchte, nicht zu kalte Spalten erhalten Dripstone Caves.
-- Unter bergigem Terrain ab Höhe 92 liegt bis Y=−24 Deep Dark; darüber kann ein anderes
-  Höhlenbiom liegen. In den übrigen Spalten bleibt bei ungeeignetem Klima das Oberflächenbiom.
+- Humid columns that are not too cold receive Lush Caves.
+- Moderately dry to moderately humid columns that are not too cold receive Dripstone Caves.
+- Beneath mountainous terrain at height 92 or above, Deep Dark extends up to Y=−24;
+  another cave biome may exist above it. Other columns retain their surface biome
+  where the climate is unsuitable for either cave biome.
 
-Der Worker-Cache speichert pro horizontaler Position das Oberflächenbiom, den
-Höhlenkandidaten, die Höhlengrenze und die Deep-Dark-Markierung. Vertikale Abfragen
-benötigen dadurch nur Grenzvergleiche. Der Cache bleibt auf 256 Positionen pro Worker
-begrenzt; Mutable-Sample-Objekte werden nicht pro Position angelegt.
+For each horizontal position, the worker cache stores the surface biome, cave candidate,
+cave ceiling and Deep Dark flag. Vertical queries therefore need only boundary comparisons.
+The cache remains limited to 256 positions per worker; it does not allocate a mutable
+sample object for each position.
 
-Die registrierten Vanilla-Features laufen auch für die Höhlenbiome. Der Mod verwendet
-weiterhin Carver-Höhlen; die großen modernen 3D-Noise-Höhlen werden dadurch nicht ergänzt.
+Registered vanilla features also run for cave biomes. The mod continues to use carver
+caves; this does not add the large modern 3D noise caves.
 
-## Ursache und Korrektur der Wasserlöcher
+## Water-hole cause and fix
 
-Im gemeldeten Seed `-8458999313514431577` im Bereich X=−2584, Z=−601 wurde der Fehler
-nachgestellt. Das Rohterrain war vollständig mit Wasser gefüllt. Minecrafts Carver dürfen
-laut Vanilla-Tag auch Wasser ersetzen. Die verwendeten Vanilla-Aquifere bestimmen ihren
-Flüssigkeitsstand anhand einer Vanilla-Oberflächenschätzung, die nicht zum New-Dawn-Relief
-passt, und lieferten dort Luft. Im Chunk [−162, −38] entstanden allein durch diese Stufe
-71 Luftblöcke. Nach kompletter Generierung blieben im geprüften Bereich von 81 Chunks
-402 Luftblöcke innerhalb der ursprünglich gefüllten Wassersäulen.
+The issue was reproduced on the reported seed `-8458999313514431577` near X=−2584, Z=−601.
+Raw terrain was completely filled with water. Vanilla's replaceable-block tag allows
+Minecraft carvers to replace water. The vanilla aquifers estimated fluid levels from a
+vanilla surface that differed from New Dawn's terrain, returning air at those locations.
+This stage alone introduced 71 air blocks in chunk [−162, −38]. After full generation,
+402 air blocks remained inside the original water columns across the 81 inspected chunks.
 
-`TerrainCarvers` führt dieselben registrierten Carver mit derselben Start-Chunk-Reihenfolge
-und Seed-Ableitung aus. Ein aufrufereigener Aquifer-Wrapper erhält die ursprüngliche
-Wasserfüllung zwischen Terrainhöhe und Y=63. Außerhalb dieses Bereichs entscheidet
-weiterhin der normale Aquifer. Weder alle unterirdischen Höhlen noch andere Welttypen
-werden pauschal geflutet. Die Übergabe erfolgt vor dem Carving; es gibt keinen nachträglichen
-Reparaturscan über generierte Weltblöcke.
+`TerrainCarvers` runs the same registered carvers with the same start-chunk traversal
+order and seed derivation. An invocation-owned aquifer wrapper preserves the original
+water envelope between terrain height and Y=63. Outside that envelope, the normal aquifer
+still decides. This does not flood all underground caves or other world types.
+The boundary is supplied before carving; there is no subsequent repair scan over
+already generated world blocks.
 
-Mit der Korrektur enthält derselbe Bereich nach kompletter Generierung und Neustart
-**0 statt 402 Luftblöcke** in der ursprünglichen Wasserfüllung. Ein Grenztest prüft zusätzlich
-Wassererhalt, positives Density-Verhalten und unveränderte Entscheidungen unter dem
-Meeresboden und oberhalb des Meeresspiegels.
+With the fix, the same area contains **0 rather than 402 air blocks** inside its original
+water envelope after full generation and restart. A boundary test also checks water
+preservation, positive-density behavior and unchanged decisions below the seabed and
+above sea level.
 
-## Bestehende Welten und Prüfung
+## Existing worlds and verification
 
-Diese Änderungen gelten für **neu generierte Chunks**. Bereits gespeicherte Biome und
-Wasserlöcher werden nicht automatisch umgeschrieben. An Grenzen zu älteren Chunks können
-Biome und Oberflächenmaterialien wechseln; das zugrunde liegende Höhenfeld bleibt gleich.
-Der zur Diagnose gelesene Spielstand wurde nicht verändert.
+These changes apply to **newly generated chunks**. Saved biomes and water holes are not
+rewritten automatically. Biomes and surface materials can change at boundaries with
+older chunks; the underlying height field remains the same. The save read for diagnosis
+was not modified.
 
 ```powershell
 .\tools\verify.ps1 -Smoke -Benchmark -Offline -Seed -8458999313514431577 -JavaHome 'C:\Program Files\Java\jdk-21'
 ```
 
-`terrain-core:biomeTest` prüft feste Klima-/Höhengrenzen, die vollständige 51er-Auswahl und
-ihre Erreichbarkeit in 1.048.576 echten Terrainspalten über vier Seeds. Die ursprünglichen
-30.720 Terrain-/Klima-Fixtures bleiben unverändert; deren alte Biomnamen sind historische
-Referenzdaten, keine Vorgabe für die neue Auswahl. Die Serverprüfung enthält den
-Wasserloch-Reproduktionsbereich auf dem gemeldeten Seed sowie parallele vertikale Cache-
-Abfragen und Höhengrenzen für alle verwendeten Oberflächenmaterialien.
+`terrain-core:biomeTest` checks fixed climate/elevation boundaries, the complete set of
+51 biomes and their reachability in 1,048,576 actual terrain columns across four seeds.
+The original 30,720 terrain/climate fixtures remain unchanged; their old biome names are
+historical reference data, not requirements for the new selection. The server check
+covers the water-hole reproduction area on the reported seed, concurrent vertical cache
+queries and height predicates for every surface material used.
