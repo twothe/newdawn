@@ -111,6 +111,64 @@ Fresh/reloaded server raw-fill medians were 0.245/0.223 ms per chunk with approx
 not whole-world throughput or an old/new server comparison.
 Current-run evidence: `build/massif-verification.log`.
 
+## Independent cliff noise: before/after comparison
+
+The same benchmark (including the new mountain reservoir) ran before and after the
+cliff change, on Java 21 with the same seeds and coordinates. The initial full core
+measurements produced these three-trial medians:
+
+| Operation | Before | After |
+| --- | ---: | ---: |
+| Reused mixed-terrain chunk | 72.663 µs | 70.047 µs |
+| Mixed height query | 0.161 µs | 0.159 µs |
+| Mixed full-column query | 0.299 µs | 0.290 µs |
+| Strong-mountain height query | 0.358 µs | 0.372 µs |
+| Strong-mountain full-column query | 0.444 µs | 0.478 µs |
+
+All reused paths measured 0 B/op. The focused mountain trials suggest approximately
+4–8% additional query cost; mixed-terrain differences are within observed variability.
+Cliff noise is skipped outside eligible mountain/climate patches, and no buffers grew.
+
+Initial fresh/reloaded server raw-fill medians changed from 0.247/0.222 to 0.316/0.311
+ms per chunk. A repeated current-code run returned to 0.244 ms (trials 0.297, 0.244,
+0.237), so the large slowdown was not stable. Raw-fill allocations remained about
+15.4–15.5 KB per chunk, including Minecraft output data.
+
+An additional sequential old/new core control also slowed down substantially even on
+the unchanged baseline (mountain height median 0.600 µs), making cross-process timing
+ratios unreliable in that session. A diagnostic alternating both compiled revisions
+within one JVM used identical method-handle wrappers and baseline-selected highland
+coordinates. Full-column relative differences ranged from -4.88% to +7.53%; height
+trials remained noisy, including an 81.60% outlier. These controls do not justify a
+precise universal overhead or a whole-world throughput claim. No per-call allocation
+regression was found; controlled profiling on a quiet machine remains useful for
+more precise CPU attribution.
+
+Evidence: `build/cliffs-before.log`, `build/cliffs-after.log`,
+`build/cliffs-before-control.log`, `build/cliffs-after-control.log`,
+`build/cliffs-server-control.log` and `build/cliffs-paired.log`.
+
+## Cliff transition follow-up
+
+Widening the steep core, adding short head/foot aprons and easing fading ends adds
+only scalar arithmetic. No noise fields, queries, neighborhood probes or buffers were
+added. The same full benchmark ran before and after the profile edit on Java 21:
+
+| Operation | Before | After |
+| --- | ---: | ---: |
+| Reused mixed-terrain chunk | 69.466 µs | 69.406 µs |
+| Mixed height query | 0.154 µs | 0.155 µs |
+| Mixed full-column query | 0.288 µs | 0.283 µs |
+| Strong-mountain height query | 0.374 µs | 0.378 µs |
+| Strong-mountain full-column query | 0.476 µs | 0.471 µs |
+
+These three-trial median differences are small relative to measurement variability;
+they do not establish a meaningful speed change. All reused paths measured 0 B/op.
+Logs: `build/cliff-transition-before.log` and `build/cliff-transition-after.log`.
+The subsequent fresh/reloaded raw-fill medians were 0.237/0.225 ms per chunk, with
+approximately 15.4/15.5 KB of Minecraft output allocation. These are integration
+stage measurements rather than whole-world throughput.
+
 ## API and ownership
 
 ```java
@@ -139,6 +197,12 @@ shared workspace. The terrain core remains independent of Minecraft and NeoForge
 
 ## Reproducing measurements and their limits
 
+For every generation change, record a benchmark before editing the algorithm and
+repeat it afterwards with the same Java version, seed, coordinates and JVM settings.
+Keep CPU-heavy tools and other generation runs out of the measurement window.
+Investigate material slowdowns rather than hiding them behind a whole-region average.
+Fixed wall-clock limits are not build gates because machine load and JIT behavior vary.
+
 ```powershell
 .\tools\verify.ps1 -Smoke -Benchmark -Offline -JavaHome 'C:\Program Files\Java\jdk-21'
 ```
@@ -151,6 +215,13 @@ Each core measurement uses 8,192 chunks or 2,097,152 individual queries. Checksu
 the results; chunk outputs are additionally kept observable outside the loop.
 Allocation counters come from the JVM's ThreadMXBean. JVMs without that capability
 report negative byte values, or `SKIP` for the allocation check.
+
+The core benchmark additionally selects 4,096 strong mountain coordinates from a
+deterministic reservoir over X/Z=[-3072,3072), on an eight-block grid. Selection uses
+only distribution influence (at least 0.35), outside timing. The same points therefore
+exercise height-only and full-column mountain paths before and after profile changes.
+The allocation check includes both paths. A distribution change requires reviewing
+coordinate comparability; profile and cliff changes preserve this workload.
 
 Each Minecraft measurement fills 256 fresh ProtoChunks. Construction and biome setup
 happen before timing starts. The measurement covers synchronous raw fill, including

@@ -2,6 +2,7 @@ package two.newdawn.terrain;
 
 import java.lang.management.ManagementFactory;
 import java.util.Locale;
+import java.util.Random;
 
 /** Warmed CPU/allocation measurements of production APIs; excludes full Minecraft generation. */
 public final class TerrainBenchmark {
@@ -25,15 +26,52 @@ public final class TerrainBenchmark {
         TerrainColumn column = new TerrainColumn();
         double columnBytes = measure("reused-column-queries", chunks * 256, () -> columns(sampler, column, chunks * 256));
         double biomeBytes = measure("reused-biome-queries", chunks * 256, () -> biomes(sampler, column, chunks * 256));
+        // Select by distribution alone, outside timing: profile changes must use the same coordinates.
+        int[] mountainX = new int[4096], mountainZ = new int[4096];
+        mountainCoordinates(sampler, mountainX, mountainZ);
+        double mountainHeightBytes = measure("mountain-height-queries", chunks * 256,
+                () -> mountainQueries(sampler, column, mountainX, mountainZ, chunks * 256, true));
+        double mountainColumnBytes = measure("mountain-column-queries", chunks * 256,
+                () -> mountainQueries(sampler, column, mountainX, mountainZ, chunks * 256, false));
         if (verifyAllocations) {
-            if (chunkBytes < 0 || heightBytes < 0 || columnBytes < 0 || biomeBytes < 0) {
+            if (chunkBytes < 0 || heightBytes < 0 || columnBytes < 0 || biomeBytes < 0
+                    || mountainHeightBytes < 0 || mountainColumnBytes < 0) {
                 System.out.println("SKIP: JVM does not expose thread allocation counters");
-            } else if (chunkBytes > 16 || heightBytes > 1 || columnBytes > 1 || biomeBytes > 1) {
+            } else if (chunkBytes > 16 || heightBytes > 1 || columnBytes > 1 || biomeBytes > 1
+                    || mountainHeightBytes > 1 || mountainColumnBytes > 1) {
                 throw new AssertionError("Reusable sampling allocated per-call objects");
             } else {
                 System.out.println("PASS: reusable chunk, column, height and biome sampling allocation budgets");
             }
         }
+    }
+
+    /** A deterministic reservoir covers strong mountain regions without timing setup or allocating in queries. */
+    private static void mountainCoordinates(TerrainSampler sampler, int[] xs, int[] zs) {
+        Random selection = new Random(4815162342L);
+        int candidates = 0;
+        for (int z = -3072; z < 3072; z += 8) for (int x = -3072; x < 3072; x += 8) {
+            if (sampler.mountainInfluence(x, z) < 0.35) continue;
+            int index = candidates < xs.length ? candidates : selection.nextInt(candidates + 1);
+            if (index < xs.length) { xs[index] = x; zs[index] = z; }
+            candidates++;
+        }
+        if (candidates < xs.length) throw new AssertionError("Insufficient mountain benchmark coordinates");
+        System.out.printf("Mountain benchmark: seed=%d samples=%d candidates=%d%n", sampler.seed(), xs.length, candidates);
+    }
+
+    private static void mountainQueries(TerrainSampler sampler, TerrainColumn column, int[] xs, int[] zs,
+                                        int count, boolean heightOnly) {
+        long sum = 0;
+        for (int i = 0; i < count; i++) {
+            int index = i % xs.length;
+            if (heightOnly) sum += sampler.sampleHeight(xs[index], zs[index]);
+            else {
+                sampler.sampleInto(xs[index], zs[index], column);
+                sum += column.height() + Float.floatToIntBits(column.humidity());
+            }
+        }
+        blackhole = sum;
     }
 
     private static double measure(String name, int operations, Runnable operation) {

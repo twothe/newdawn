@@ -43,7 +43,8 @@ which one wins. No global generator is replaced at runtime, and no client API is
   another Simplex library would produce different worlds.
 - All 13 general noise fields, followed by four mountain fields, are initialized in the
   original order. Even the filler field affects later climate and mountain fields by
-  consuming random numbers during initialization.
+  consuming random numbers during initialization. The dedicated cliff field follows
+  these original fields, retaining all existing offsets.
 - Base-terrain scales, offsets, weights and arithmetic order match the original. Rounding,
   height clamping and float conversion are also retained. `BLOCK_SCALE=2` remains
   part of the terrain shape and is deliberately independent of the modern build height.
@@ -56,6 +57,9 @@ which one wins. No global generator is replaced at runtime, and no client API is
   1.8 scale multiplier. Its height profile combines a broad body, subordinate coupled
   ridges, local noise overlays and direct climate-dependent
   cliff shaping; see [mountains.md](mountains.md). River generation is still absent.
+- Independent cliff noise is sampled only where mountain strength and the direct
+  climate/patch mask permit it. Its bounded deformation preserves the broad mountain
+  body; no neighboring heights or environment calculations are needed.
 - Upland biome and top-material bands reuse the already sampled 23 × 27-block terrain
   noise for a bounded ±6-block threshold offset. Physical terrain height, sea-level
   boundaries and heightmaps are unaffected.

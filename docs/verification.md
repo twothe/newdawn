@@ -218,3 +218,61 @@ The follow-up passed `:terrain-core:check build --offline --console=plain` and
 The fixture is `build/smoke-350e080b7a0b4bf0a7641fa4a1199b95`. These numbers record
 this run, not fixed expectations for future shape tuning. Visual approval in the
 client and complete modpack testing remain outstanding.
+
+## Independent climate-gated cliff noise
+
+`build/cliffs-check.log` records successful `:terrain-core:check build` checks.
+`build/cliffs-after.log` records the full benchmark plus fresh/reloaded dedicated
+servers for seed -8458999313514431577. The fixture is
+`build/smoke-4ddba2ead73d4f39811106079b2da60e`.
+
+The core verifies climate-dependent patch frequency and strength, finite bounded
+deformation, zero influence/shoulder behavior, local edge variation and exposed-rock
+reset. The existing sampling, parallelism and all-51-biome checks pass. Reused mixed
+and mountain-focused sampling measured 0 B/op; CPU comparisons and measurement limits
+are in [performance.md](performance.md).
+
+Fresh and reloaded servers passed column/material checks, concurrent clipped fills,
+all six heightmaps, 25 decorated chunks, village generation and 81 ocean chunks with
+zero air holes in their water envelope. Persisted checksum -5383168313751760695 matched
+after restart and again during the additional server performance control.
+
+A diagnostic four-block-grid survey over X/Z=[-3072,3072) measured the height range in
+an eight-block neighborhood around exposed land-cliff columns. Before/after mean
+ranges were 10.82/20.57 blocks, with 800/1,466 samples reaching at least 12 blocks;
+the exposed-column counts were 1,830/1,782. This indicates stronger faces without
+simply flagging more surface. Neighbor probes existed only in the diagnostic; the
+production generator remains strictly pointwise. These are observations, not visual
+snapshot assertions. Logs: `build/cliffs-shape-before.log` and
+`build/cliffs-shape-after.log`. Live-client approval of the new cliffs is pending.
+
+## Cliff head/foot transitions and fading ends
+
+The user identified the previously suggested cliff near X=-2876, Z=1340 as looking
+like a chunk error. A 169 × 169-column production survey beginning at X=-2960, Z=1256
+confirmed a 25-block adjacent height step at X=-2898, Z=1393. Its local Z cross-section
+included `179, 180, 179, 154, 148, 149`: the narrow cliff transform concentrated the
+drop into one or two columns. This was observable in the core height field, before
+chunk storage, rendering, carving or decoration.
+
+The revised profile keeps most relief in a steep core, adds a short wider apron and
+widens the transition as activation fades. In the same production survey, the largest
+adjacent step became 12 blocks; edges of at least 12 blocks fell from 219 to one.
+The corresponding section became `178, 177, 171, 159, 151, 150`. The change adds scalar
+arithmetic only, with unchanged noise-query counts and caller-owned buffers.
+
+A profile regression failed on the previous implementation because its central strip
+consumed nearly all the relief. It now passes, together with a fading-end check and
+all core/build checks. These tests compare profile relationships, not exact world
+heights or historical snapshots. Logs: `build/cliff-transition-failing-test.log`,
+`build/cliff-transition-check.log`, `build/cliff-transition-shape-before.log` and
+`build/cliff-transition-shape-after.log`. The grid surveys are diagnostic evidence;
+they do not add neighbor sampling to production generation.
+
+`build/cliff-transition-after.log` records the subsequent successful benchmark and
+fresh/reloaded server checks for seed -8458999313514431577. Both runs passed all
+column, material, parallel fill and heightmap checks, including an exposed cliff in
+chunk [-179,-157]. All 81 ocean chunks retained their water envelope. The persisted
+checksum -8352533147771064840 matched across restart. Fixture:
+`build/smoke-e6c609ee8a4f4c6eaebf47fd851852db`. Visual confirmation in the client remains
+outstanding.

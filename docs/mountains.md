@@ -48,11 +48,38 @@ mountain boundary. This adds no noise queries, fields or output-buffer storage.
 The separate ±6-block biome-height offset continues to move material/elevation bands;
 it does not change physical height.
 
-Cliffs replace a broad flank transition with a narrow smooth transition. Dryness and
-cool, moist weathering strengthen them. A smooth mask from signed secondary noise
-breaks their strength into patches rather than following an entire contour at equal
-strength. The deformation returns to zero beyond the affected band. These are artistic
-approximations of weathering, not erosion or a geological simulation.
+Cliffs now have a dedicated 181 × 163 noise field, appended after the existing seeded
+fields. Its contour is warped with existing terrain and ridge signals; block-scale
+noise adds a small irregularity to the edge. The cliff field is independent of the
+ridge contour, so exposed faces no longer require one particular flank of a ridge.
+
+Activation combines mountain influence with a smooth patch mask from existing broad
+terrain and ridge noise. Dryness and cool, moist weathering both lower the patch
+threshold (more eligible locations) and increase the height change. Warm, humid
+regions retain occasional weak cliffs. Permanent cold does not automatically maximize
+weathering. These are artistic approximations, not erosion or a geological simulation.
+
+The dedicated field is sampled only after activation is known to be positive. Mountain
+influence at or below 0.08 disables cliffs, and a smooth ramp through 0.40 protects the
+lower foothills. The profile combines a steep face with a shorter head/foot apron,
+then subtracts the broad shoulder transition:
+
+```text
+cliffRelief = 44 * activation * (0.80 * faceTransition + 0.20 * apronTransition - broadTransition)
+```
+
+This lowers one side of the contour and raises the other, concentrating the height
+change into a short face. Deformation returns to zero outside the broad shoulders and
+is bounded to less than ±22 blocks at full activation, scaled down with mountain
+influence. It cannot hollow out the approved broad body. Ridge noise varies the face's
+half-width from 0.075 to 0.100 in noise space. Below activation 0.55, an additional
+smooth widening reaches 0.10 at activation 0.15: terminating cliff patches lose
+sharpness as well as height. The apron is 2.5 times wider than the face and carries
+only 20% of its transition. The main wall therefore stays steep, while its head and
+foot connect through a short ledge/slope instead of an almost single-column cut.
+Local noise breaks up the edge. There are no discrete height jumps,
+quantized terraces or repeated altitude bands. Spatial width depends on the local
+noise gradient, rather than a guaranteed number of blocks.
 
 The analytical cliff-band position and amplitude produce an `exposedRock` flag. This
 indicates the profile's cliff band, not the final terrain gradient. Such columns omit
@@ -67,8 +94,11 @@ closed basin.
 Mountain shaping uses regional/area temperature and humidity; local climate noise
 and forest patches are excluded. Full sampling reuses those climate values. Height-only
 queries evaluate the four broad climate fields inside active mountain regions.
-Noise initialization order, noise-query count and caller-owned buffer contracts are
-unchanged by the body redesign. The additional work is scalar arithmetic.
+The original noise initialization order and caller-owned buffer contracts are preserved.
+The additional cliff field uses the same immutable Simplex source with its own appended
+offsets and scales. It costs one extra noise query only in eligible mountain patches;
+activation and deformation otherwise use scalar arithmetic. No per-column objects or
+neighbor samples are introduced.
 
 After geometry, altitude correction uses the original curve through height 128 and
 continues linearly at -0.004 per block above it. The correction table is precomputed.
@@ -78,7 +108,8 @@ Snowy Slopes require mountain relief; ordinary hills retain their lowland climat
 biomes. Meadow and the rare Cherry Grove window remain available on highland hills.
 
 Tests check body dominance over ridge valleys, nonzero but subordinate local detail,
-continuous boundaries, climate response, deterministic concurrent sampling and agreement
+continuous boundaries, climate-dependent cliff frequency/strength, bounded cliff
+deformation, head/foot transitions and softened ends, deterministic concurrent sampling and agreement
 between height, column and chunk paths. No fixed seed-coordinate heights or visual
 snapshots restrict future tuning. See [performance.md](performance.md) and
 [verification.md](verification.md) for measurements and runtime evidence.
@@ -88,13 +119,19 @@ snapshots restrict future tuning. See [performance.md](performance.md) and
 Use a fresh world or newly generated areas. Existing chunks retain their previous
 shape; there is no blending at old/new chunk borders. The mod version remains 1.0.0.
 
-The current eight-block-grid survey found the following raw-terrain examples:
+The current eight-block-grid survey found these raw-terrain examples:
 
 | Seed | Mountain X/Y/Z | Exposed cliff X/Y/Z |
 | --- | --- | --- |
-| -8458999313514431577 | -1744 / 223 / -568 | -680 / 109 / 400 |
-| 123456789 | -2040 / 214 / -1512 | -128 / 95 / 64 |
+| -8458999313514431577 | -2008 / 230 / -712 | -680 / 110 / 392 |
+| 123456789 | -2128 / 215 / -1576 | -176 / 107 / 0 |
 
 These are inspection aids, not expected test outputs or guaranteed world maxima.
-Decoration can change the top block. The appearance at the usual ten-chunk view
-distance remains subject to live client inspection.
+Decoration can change the top block. A denser diagnostic found a pronounced cliff
+near X=-2876, Z=1340 on seed -8458999313514431577. The user's screenshot there exposed
+overly narrow cliff transitions. In the surrounding 169 × 169-column area, widening
+the face and adding the apron reduced the largest adjacent-column step from 25 to 12
+blocks, without changing cliff eligibility, amplitude, noise sampling or the mountain
+body. These diagnostic values are not visual snapshot requirements. The user approved
+the broad mountain body; the revised cliff transitions still need live inspection
+at the usual ten-chunk view distance.

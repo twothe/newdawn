@@ -5,7 +5,7 @@ import java.util.Objects;
 
 /**
  * Seed-specific terrain and climate composition with pointwise multifractal mountains, safe for concurrent sampling.
- * All random numbers are consumed during construction in the original 1.7.10 order.
+ * Random numbers are consumed only during construction; new fields follow the original 1.7.10 fields.
  * The legacy 256-block scale deliberately remains independent of the game's build height.
  */
 public final class TerrainSampler {
@@ -17,6 +17,7 @@ public final class TerrainSampler {
     private final Field temperatureLocal, temperatureArea, temperatureRegion;
     private final Field humidityLocal, humidityArea, humidityRegion, forest;
     private final Field hills, hillsBlock, hillsSmall, hillsLarge;
+    private final Field cliffs;
 
     public TerrainSampler(long seed) {
         this.seed = seed;
@@ -39,6 +40,8 @@ public final class TerrainSampler {
         hillsBlock = field(noise, random, 2.0, 2.2);
         hillsSmall = field(noise, random, 41.0, 45.0);
         hillsLarge = field(noise, random, 127.0, 119.0);
+        // Append new fields so existing terrain, climate and mountain offsets remain unchanged.
+        cliffs = field(noise, random, 181.0, 163.0);
     }
 
     public long seed() { return seed; }
@@ -96,7 +99,13 @@ public final class TerrainSampler {
             // Signed broad fields keep the massif filled instead of folding its body into ridge walls.
             double broadVariation = Math.max(0.0, Math.min(1.0, 0.5 + largeNoise * 0.325 + smallNoise * 0.175));
             hillHeight = MountainProfile.height(hillFactor, broadVariation, mainRidge, secondaryRidge,
-                    blockNoise, hillsBlock.at(x, z), broadTemperature, broadHumidity, target);
+                    blockNoise, hillsBlock.at(x, z), broadTemperature, broadHumidity);
+            double cliffStrength = CliffProfile.strength(hillFactor, broadTemperature, broadHumidity,
+                    mainRidge * 0.70 + smallNoise * 0.30);
+            if (cliffStrength > 0.0) {
+                double cliffNoise = cliffs.at(warpedX + secondaryRidge * 7.0, warpedZ - mainRidge * 11.0);
+                hillHeight += CliffProfile.height(cliffStrength, cliffNoise, blockNoise, secondaryRidge, target);
+            }
         }
         int height = Math.max(1, Math.min(255, (int) Math.round(baseHeight + hillHeight)));
         if (target != null) {

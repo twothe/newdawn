@@ -18,13 +18,13 @@ final class MountainProfile {
     }
 
     /**
-     * Returns added height and optionally overwrites the analytical exposed-rock indicator.
+     * Returns the mountain body, ridges and local detail before independent cliff deformation.
      * Influence and broad variation are in [0, 1]; all other noise inputs are in [-1, 1].
-     * Every contribution fades with influence, including local detail and cliffs.
+     * Every contribution fades with influence, including local detail.
      */
     static double height(double influence, double broadVariation, double large, double small,
                          double local, double detail,
-                         double temperature, double humidity, TerrainColumn target) {
+                         double temperature, double humidity) {
         double dry = 1.0 - smooth(-0.45, 0.30, humidity);
         // Moisture and a cool transition climate favor broken rock; permanent cold is not amplified.
         double frost = smooth(-0.70, -0.25, temperature) * (1.0 - smooth(-0.15, 0.15, temperature))
@@ -44,17 +44,7 @@ final class MountainProfile {
         // Reused block-scale noise supplies coherent roughness; two-block detail stays subordinate.
         double surfaceRelief = local * 5.0 + detail * (0.5 + ruggedness * 0.75);
 
-        // Reshape one flank into a finite steep band, rather than adding a discontinuous height step.
-        double cliffStrength = 0.15 + dry * 0.70 + frost * 0.40;
-        double edge = 0.32 + small * 0.035;
-        double transition = (edge + 0.045 - large) / 0.09;
-        double cliffPatch = smooth(-0.30, 0.55, small);
-        double cliffAmplitude = influence * cliffStrength * cliffPatch * 18.0;
-        double cliff = cliffAmplitude * (smooth(0.0, 1.0, transition) - smooth(0.07, 0.62, 0.69 - large));
-        if (target != null) {
-            target.exposedRock = cliffAmplitude >= 3.0 && transition > 0.12 && transition < 0.88;
-        }
-        return influence * (144.0 * profile + surfaceRelief) + cliff;
+        return influence * (144.0 * profile + surfaceRelief);
     }
 
     /** Cubic blend with constant endpoints; all profile transitions use bounded arithmetic. */

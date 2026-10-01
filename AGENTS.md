@@ -10,6 +10,7 @@
 - Keep upland biome thresholds and raw top-material selection on the same sampled column; sea-level decisions use physical terrain height. The existing block noise supplies a bounded local threshold offset.
 - Keep `terrain-core` independent of Minecraft, NeoForge and mutable global state. Minecraft integration belongs in the main project.
 - Use caller-owned terrain buffers in hot paths. Never share mutable buffers across concurrent or reentrant generation calls. See `docs/performance.md` for benchmarks and ownership contracts.
+- For generation changes, capture warmed CPU and allocation benchmarks before and after with identical seeds, coordinates and JVM settings. Include mountain-focused queries as well as mixed terrain; investigate material regressions before completion. Use the server raw-fill benchmark when generation integration is affected.
 - Use Java 21. Run `./gradlew :terrain-core:check build` and the dedicated server smoke check for generation/lifecycle changes.
 - Do not modify the original Forge project. Do not introduce per-version adapter hierarchies or reflection for speculative compatibility.
 
