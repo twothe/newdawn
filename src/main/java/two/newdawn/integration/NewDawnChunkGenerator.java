@@ -99,7 +99,7 @@ public final class NewDawnChunkGenerator extends NoiseBasedChunkGenerator {
             for (int z = 0; z < 16; z++) {
                 for (int x = 0; x < 16; x++) {
                     columns.copyColumn(x + z * 16, column);
-                    layers.prepare(column.height(), column.fillerDepth(), BiomePalette.select(column), getMinY());
+                    layers.prepare(column.height(), column.fillerDepth(), BiomePalette.select(column), getMinY(), column.exposedRock());
                     if (uniformStart < uniformEnd) {
                         layers.fill(chunk, x, z, minimum, uniformStart);
                         layers.fill(chunk, x, z, uniformEnd, maximum);
@@ -161,7 +161,7 @@ public final class NewDawnChunkGenerator extends NoiseBasedChunkGenerator {
         TerrainColumn column = new TerrainColumn();
         source.terrain().sampleInto(x, z, column);
         TerrainBlockColumn layers = new TerrainBlockColumn();
-        layers.prepare(column.height(), column.fillerDepth(), BiomePalette.select(column), getMinY());
+        layers.prepare(column.height(), column.fillerDepth(), BiomePalette.select(column), getMinY(), column.exposedRock());
         return new NoiseColumn(minimum, layers.toStates(minimum, maximum));
     }
 

@@ -55,6 +55,62 @@ The carver fix additionally requires an invocation-owned buffer of 256 integer h
 and 256 height-only queries per carving pass; raw-fill measurements do not include
 that separate pipeline stage.
 
+## Mountain redesign
+
+The multifractal/cliff profile keeps full-column noise-query counts unchanged. Height-only
+queries evaluate four additional broad-climate fields inside active mountain regions.
+No surrounding heights or chunks are queried. The extra rock flag raises a newly allocated
+chunk buffer from 5,552 to 5,832 bytes; reused chunk, column, height and biome paths still
+measured 0 B/op.
+
+The local variation of upland biome boundaries also reuses an existing sampled noise
+value, adding no noise evaluation. It adds one float to a retained sample and one
+256-element float array to an owned chunk buffer. Reused sampling still measured
+0 B/op after this change; no additional result object is created per column.
+
+The initial baseline and subsequent measurements differed noticeably in machine speed.
+To avoid comparing those runs directly, the previous committed core was compiled into an
+isolated `build/mountain-baseline` directory and benchmarked immediately before the new
+core, using the same JDK, benchmark and seed. Three-trial medians after warmup:
+
+| Operation | Previous core | Mountain core |
+| --- | ---: | ---: |
+| Owned chunk buffer | 113.339 µs | 113.342 µs |
+| Reused chunk buffer | 106.101 µs | 113.302 µs |
+| Height-only query | 0.202 µs | 0.234 µs |
+| Reused full column | 0.467 µs | 0.455 µs |
+| Reused column plus biome | 0.457 µs | 0.482 µs |
+
+The observed reused-chunk overhead is about 7%, and height-only overhead about 16%, for
+this sampled region. Individual trials still varied; the small full-column improvement
+is not evidence of a speedup. Mountain-heavy regions can have different costs. Logs:
+`build/mountains-baseline-controlled.log` and `build/mountains-current-controlled.log`.
+
+The fresh/reloaded server runs measured median raw-fill times of 0.440/0.424 ms per chunk,
+with approximately 14.1 KB allocated per chunk. These are integration measurements, not
+a matched old/new server comparison or a whole-world-generation throughput claim.
+Evidence: `build/mountains-verification.log`.
+
+## Broad mountain body and local detail follow-up
+
+The body/ridge redesign reuses every existing noise sample. It adds scalar arithmetic,
+without new fields, neighboring queries or output-buffer allocations. The same warmed
+benchmark immediately before and after this change produced these three-trial medians:
+
+| Operation | Previous ridge-dominated profile | Broad body with local detail |
+| --- | ---: | ---: |
+| Reused chunk buffer | 67.829 µs | 68.061 µs |
+| Height-only query | 0.147 µs | 0.147 µs |
+| Reused full column | 0.278 µs | 0.276 µs |
+| Reused column plus biome | 0.287 µs | 0.285 µs |
+
+All four reused paths measured 0 B/op. These small timing differences do not establish
+a meaningful speed change. The sampled region is not a worst-case mountain benchmark.
+Fresh/reloaded server raw-fill medians were 0.245/0.223 ms per chunk with approximately
+15.4/15.5 KB allocated, including Minecraft chunk output data. These are stage timings,
+not whole-world throughput or an old/new server comparison.
+Current-run evidence: `build/massif-verification.log`.
+
 ## API and ownership
 
 ```java

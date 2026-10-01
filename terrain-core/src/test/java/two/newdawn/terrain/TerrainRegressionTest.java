@@ -1,33 +1,30 @@
 package two.newdawn.terrain;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 
-/** Tests production sampling against captured original-code results, including concurrent access. */
+/** Checks seeded sampling, output buffers, and concurrent readers without freezing terrain geometry. */
 public final class TerrainRegressionTest {
     public static void main(String[] args) throws Exception {
         List<Fixture> fixtures = new ArrayList<>();
-        var resource = TerrainRegressionTest.class.getResourceAsStream("/legacy-terrain.csv");
-        if (resource == null) throw new AssertionError("Legacy fixture is missing");
-        try (var reader = new BufferedReader(new InputStreamReader(resource, StandardCharsets.UTF_8))) {
-            reader.readLine();
-            for (String line; (line = reader.readLine()) != null;) {
-                String[] fields = line.split(",");
-                fixtures.add(new Fixture(Long.parseLong(fields[0]), Integer.parseInt(fields[1]), Integer.parseInt(fields[2]),
-                        new TerrainSample(Integer.parseInt(fields[3]), Integer.parseInt(fields[4]), Boolean.parseBoolean(fields[5]),
-                                Float.intBitsToFloat(Integer.parseInt(fields[6])), Float.intBitsToFloat(Integer.parseInt(fields[7])),
-                                Integer.parseInt(fields[8]))));
+        Map<Long, TerrainSampler> samplers = new java.util.HashMap<>();
+        Random coordinates = new Random(0x4E45574441574EL);
+        for (long seed : new long[]{0L, 1L, -1L, 123456789L, Long.MIN_VALUE, Long.MAX_VALUE}) {
+            TerrainSampler sampler = new TerrainSampler(seed);
+            samplers.put(seed, sampler);
+            for (int z = -16; z < 16; z++) for (int x = -16; x < 16; x++) {
+                fixtures.add(new Fixture(seed, x, z, sampler.sample(x, z)));
+            }
+            for (int index = 0; index < 4096; index++) {
+                int x = coordinates.nextInt(-2_000_000, 2_000_000);
+                int z = coordinates.nextInt(-2_000_000, 2_000_000);
+                fixtures.add(new Fixture(seed, x, z, sampler.sample(x, z)));
             }
         }
-        Map<Long, TerrainSampler> samplers = new java.util.HashMap<>();
-        for (Fixture fixture : fixtures) samplers.computeIfAbsent(fixture.seed, TerrainSampler::new);
-        for (Fixture fixture : fixtures) verify(samplers.get(fixture.seed), fixture);
         verifyBuffers(fixtures, samplers);
         try (var executor = Executors.newFixedThreadPool(8)) {
             List<Callable<Void>> tasks = new ArrayList<>();
@@ -66,7 +63,7 @@ public final class TerrainRegressionTest {
             throw new AssertionError("Overflowing chunk coordinate accepted");
         } catch (ArithmeticException expected) { /* Invalid coordinate rejected at the public boundary. */ }
         verifyBufferContracts(sampler);
-        System.out.println("PASS: " + fixtures.size() + " original-code fixtures, exact climate float bits, 8-worker determinism, chunk indexing and boundaries");
+        System.out.println("PASS: " + fixtures.size() + " current-generation points, 8-worker determinism and sampling-path agreement");
     }
 
     private static void verifyBuffers(List<Fixture> fixtures, Map<Long, TerrainSampler> samplers) {
@@ -78,9 +75,9 @@ public final class TerrainRegressionTest {
         for (Fixture fixture : fixtures) {
             TerrainSampler sampler = samplers.get(fixture.seed);
             sampler.sampleInto(fixture.x, fixture.z, column);
-            require(column.snapshot().equals(fixture.expected), "Buffered point differs from original fixture: " + fixture);
+            require(column.snapshot().equals(fixture.expected), "Buffered point differs from serial sample: " + fixture);
             require(BiomePalette.select(column).equals(BiomePalette.select(fixture.expected)), "Buffered biome differs from snapshot selection");
-            require(sampler.sampleHeight(fixture.x, fixture.z) == fixture.expected.height(), "Height-only path differs from fixture");
+            require(sampler.sampleHeight(fixture.x, fixture.z) == fixture.expected.height(), "Height-only path differs from serial sample");
             int chunkX = fixture.x >> 4, chunkZ = fixture.z >> 4;
             if (previousSeed != fixture.seed || previousX != chunkX || previousZ != chunkZ) {
                 sampler.sampleChunkInto(chunkX, chunkZ, chunk);
@@ -88,10 +85,11 @@ public final class TerrainRegressionTest {
             }
             int index = (fixture.x & 15) + (fixture.z & 15) * 16;
             chunk.copyColumn(index, copied);
-            require(copied.snapshot().equals(fixture.expected), "Batch output differs from original fixture: " + fixture);
+            require(copied.snapshot().equals(fixture.expected), "Batch output differs from serial sample: " + fixture);
             require(chunk.height(index) == copied.height() && chunk.regionHeight(index) == copied.regionHeight()
-                    && chunk.mountain(index) == copied.mountain() && chunk.temperature(index) == copied.temperature()
-                    && chunk.humidity(index) == copied.humidity() && chunk.fillerDepth(index) == copied.fillerDepth(), "Batch getters differ");
+                    && chunk.exposedRock(index) == copied.exposedRock() && chunk.mountain(index) == copied.mountain() && chunk.temperature(index) == copied.temperature()
+                    && chunk.humidity(index) == copied.humidity() && chunk.fillerDepth(index) == copied.fillerDepth()
+                    && chunk.biomeHeightOffset(index) == copied.biomeHeightOffset(), "Batch getters differ");
         }
     }
 
@@ -132,7 +130,7 @@ public final class TerrainRegressionTest {
 
     private static void verify(TerrainSampler sampler, Fixture fixture) {
         TerrainSample actual = sampler.sample(fixture.x, fixture.z);
-        require(actual.equals(fixture.expected), "Legacy mismatch at " + fixture + ": " + actual);
+        require(actual.equals(fixture.expected), "Serial baseline mismatch at " + fixture + ": " + actual);
     }
 
     private static void require(boolean valid, String message) {

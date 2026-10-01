@@ -4,7 +4,7 @@ import java.util.Random;
 import java.util.Objects;
 
 /**
- * Seed-specific legacy terrain and climate composition, safe for concurrent sampling.
+ * Seed-specific terrain and climate composition with pointwise multifractal mountains, safe for concurrent sampling.
  * All random numbers are consumed during construction in the original 1.7.10 order.
  * The legacy 256-block scale deliberately remains independent of the game's build height.
  */
@@ -35,7 +35,7 @@ public final class TerrainSampler {
         humidityArea = field(noise, random, 320.0, 273.0);
         humidityRegion = field(noise, random, 1080.0, 919.0);
         forest = field(noise, random, 93.0, 116.0);
-        hills = field(noise, random, 897.0, 957.0);
+        hills = field(noise, random, 897.0*1.8, 957.0*1.8);
         hillsBlock = field(noise, random, 2.0, 2.2);
         hillsSmall = field(noise, random, 41.0, 45.0);
         hillsLarge = field(noise, random, 127.0, 119.0);
@@ -53,45 +53,64 @@ public final class TerrainSampler {
     /** Samples absolute block coordinates without allocating; overwrites every field of target. */
     public void sampleInto(int x, int z, TerrainColumn target) {
         Objects.requireNonNull(target, "target");
-        int height = calculateRelief(x, z, target);
+        double broadTemperature = temperatureRegion.at(x, z) * 0.8 + temperatureArea.at(x, z) * 0.15;
+        double broadHumidity = humidityRegion.at(x, z) * 0.40 + humidityArea.at(x, z) * 0.55;
+        int height = calculateRelief(x, z, broadTemperature, broadHumidity, target);
         double altitude = ALTITUDE_CORRECTION[height];
-        double temperature = temperatureRegion.at(x, z) * 0.8 + temperatureArea.at(x, z) * 0.15
-                + temperatureLocal.at(x, z) * 0.05 + altitude;
-        double humidity = humidityRegion.at(x, z) * 0.40 + humidityArea.at(x, z) * 0.55
-                + humidityLocal.at(x, z) * 0.05
-                + (forest.at(x, z) > (temperature >= 0.5f ? 0.85 : 0.60) ? 0.5 : 0.0) + altitude;
+        double temperature = broadTemperature + temperatureLocal.at(x, z) * 0.05 + altitude;
+        double humidity = broadHumidity + humidityLocal.at(x, z) * 0.05
+                + (forest.at(x, z) > (temperature >= 0.5f ? 0.85 : 0.65) ? 0.5 : 0.0) + altitude;
         target.temperature = (float) temperature;
         target.humidity = (float) humidity;
         target.fillerDepth = (int) Math.round((filler.at(x, z) + 1.0) * 1.5 * 2.0);
     }
 
-    /** First air/water Y, without calculating climate, filler or allocating a result object. */
+    /** First air/water Y; evaluates broad climate only inside mountains, without filler or allocations. */
     public int sampleHeight(int x, int z) {
-        return calculateRelief(x, z, null);
+        return calculateRelief(x, z, 0.0, 0.0, null);
     }
 
-    private int calculateRelief(int x, int z, TerrainColumn target) {
+    private int calculateRelief(int x, int z, double broadTemperature, double broadHumidity, TerrainColumn target) {
         double terrainRoughness = roughness.at(x, z) + 1.0;
-        double localHeight = block.at(x, z) * terrainRoughness * 0.5 * 2.0;
-        double smallHeight = small.at(x, z) * terrainRoughness * 6.0 * 2.0;
-        double largeHeight = large.at(x, z) * terrainRoughness * 10.0 * 2.0;
+        double blockNoise = block.at(x, z);
+        double localHeight = blockNoise * terrainRoughness * 0.5 * 2.0;
+        double smallNoise = small.at(x, z);
+        double largeNoise = large.at(x, z);
+        double smallHeight = smallNoise * terrainRoughness * 6.0 * 2.0;
+        double largeHeight = largeNoise * terrainRoughness * 10.0 * 2.0;
         double regionHeight = (region.at(x, z) + 0.25) * 8.0 / 1.25 * 2.0;
         double baseHeight = SEA_LEVEL + regionHeight + largeHeight + smallHeight + localHeight;
-        double hillFactor = hills.at(x, z);
-        if (hillFactor >= 0.0) {
-            hillFactor = -(Math.cos(Math.PI * Math.pow(hillFactor, 4.0)) - 1.0) / 2.0;
+        double hillFactor = mountainInfluence(x, z);
+        double hillHeight = 0.0;
+        if (target != null) target.exposedRock = false;
+        if (hillFactor > 0.0) {
+            if (target == null) {
+                broadTemperature = temperatureRegion.at(x, z) * 0.8 + temperatureArea.at(x, z) * 0.15;
+                broadHumidity = humidityRegion.at(x, z) * 0.40 + humidityArea.at(x, z) * 0.55;
+            }
+            // Reuse existing broad terrain signals to bend the ridges, without extra noise queries.
+            double warpedX = x + smallNoise * 18.0;
+            double warpedZ = z + largeNoise * 18.0;
+            double mainRidge = hillsLarge.at(warpedX, warpedZ);
+            double secondaryRidge = hillsSmall.at(warpedX + mainRidge * 9.0, warpedZ - mainRidge * 9.0);
+            // Signed broad fields keep the massif filled instead of folding its body into ridge walls.
+            double broadVariation = Math.max(0.0, Math.min(1.0, 0.5 + largeNoise * 0.325 + smallNoise * 0.175));
+            hillHeight = MountainProfile.height(hillFactor, broadVariation, mainRidge, secondaryRidge,
+                    blockNoise, hillsBlock.at(x, z), broadTemperature, broadHumidity, target);
         }
-        double hillHeight = hillFactor >= 0.01
-                ? (hillsLarge.at(x, z) * 0.4 + hillsSmall.at(x, z) * 0.59
-                + hillsBlock.at(x, z) * 0.01 + 0.5) * hillFactor * 32.0 * 2.0 : 0.0;
         int height = Math.max(1, Math.min(255, (int) Math.round(baseHeight + hillHeight)));
         if (target != null) {
             target.height = height;
             target.regionHeight = (int) Math.round(regionHeight);
-            target.mountain = hillHeight > 4;
+            // A raised base-terrain hill is not a mountain, even at a high absolute elevation.
+            target.mountain = hillHeight >= 24;
+            target.biomeHeightOffset = (float) (Math.max(-1.0, Math.min(1.0, blockNoise)) * 6.0);
         }
         return height;
     }
+
+    /** Mountain coverage from the current seed-specific field. */
+    double mountainInfluence(int x, int z) { return MountainProfile.influence(hills.at(x, z)); }
 
     /** Snapshot convenience API. Prefer sampleChunkInto for generation or repeated batch queries. */
     public TerrainSample[] sampleChunk(int chunkX, int chunkZ) {
@@ -125,18 +144,20 @@ public final class TerrainSampler {
     private static double[] altitudeCorrections() {
         double[] corrections = new double[256];
         for (int height = 1; height < corrections.length; height++) {
-            double shifted = height + SEA_LEVEL - 256 / 2.0;
+            // Preserve the lowland curve; its fourth-power growth overwhelms climate on taller peaks.
+            double shifted = Math.min(height, 128) + SEA_LEVEL - 256 / 2.0;
             corrections[height] = shifted < 0.0 ? 0.0
                     : -Math.pow(shifted / 256.0, 3.0) * Math.pow(shifted * 0.4, 1.001);
+            corrections[height] -= Math.max(0, height - 128) * 0.004;
         }
         return corrections;
     }
 
-    private static Field field(SimplexNoise noise, Random random, double x, double z) {
-        return new Field(noise, x, z, random.nextDouble(), random.nextDouble());
+    private static Field field(SimplexNoise noise, Random random, double scaleX, double scaleZ) {
+        return new Field(noise, scaleX, scaleZ, random.nextDouble(), random.nextDouble());
     }
 
     private record Field(SimplexNoise noise, double scaleX, double scaleZ, double offsetX, double offsetZ) {
-        double at(int x, int z) { return noise.noise(x / scaleX + offsetX, z / scaleZ + offsetZ); }
+        double at(double x, double z) { return noise.noise(x / scaleX + offsetX, z / scaleZ + offsetZ); }
     }
 }

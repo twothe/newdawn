@@ -1,0 +1,5 @@
+# Copy this file to build.local.properties (ignored by Git).
+# Optional existing absolute mods directory. Use forward slashes, including on Windows.
+# Leave blank to disable copying. Do not put quotes around the path.
+# An actual NEWDAWN_MODS_DIR environment variable takes precedence over this value.
+NEWDAWN_MODS_DIR=

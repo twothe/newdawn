@@ -25,3 +25,11 @@ tasks.register('biomeTest', JavaExec) {
     mainClass = 'two.newdawn.terrain.BiomeRegressionTest'
 }
 tasks.named('check') { dependsOn regressionTest, allocationTest, biomeTest }
+
+// Direct profile contracts and production mountain coverage, without a Minecraft dependency.
+tasks.register('mountainTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'two.newdawn.terrain.MountainRegressionTest'
+}
+tasks.named('check') { dependsOn mountainTest }

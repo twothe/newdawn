@@ -24,6 +24,7 @@ final class SmokeTerrainChecks {
 
     static void run(ServerLevel level, NewDawnChunkGenerator generator) throws Exception {
         verifyLayers();
+        verifyCliffChunk(level, generator);
         // Each worker owns its chunks. Shared generator, sampler and biome source exercise production ownership.
         try (var executor = Executors.newFixedThreadPool(4)) {
             var tasks = new ArrayList<Callable<Void>>();
@@ -40,6 +41,28 @@ final class SmokeTerrainChecks {
             }
             for (var future : executor.invokeAll(tasks)) future.get();
         }
+    }
+
+    /** Exercise a real exposed-rock chunk, rather than relying on fixed generic chunks to hit a cliff. */
+    private static void verifyCliffChunk(ServerLevel level, NewDawnChunkGenerator generator) {
+        var sampler = ((NewDawnBiomeSource) generator.getBiomeSource()).terrain();
+        var column = new two.newdawn.terrain.TerrainColumn();
+        for (int z = -3072; z < 3072; z += 8) for (int x = -3072; x < 3072; x += 8) {
+            sampler.sampleInto(x, z, column);
+            if (column.exposedRock() && column.height() > 70) {
+                var pos = new ChunkPos(x >> 4, z >> 4);
+                verifyChunk(level, generator, level, pos);
+                var states = generator.getBaseColumn(x, z, level, level.getChunkSource().randomState());
+                var top = states.getBlock(column.height() - 1);
+                require(top.is(Blocks.STONE) || top.is(Blocks.SANDSTONE) || top.is(Blocks.RED_SANDSTONE)
+                        || top.is(Blocks.TERRACOTTA), "Cliff retained soil/snow instead of exposed rock");
+                // Full pipeline also has to accept the new relief and surface materials.
+                level.getChunk(pos.x, pos.z);
+                com.mojang.logging.LogUtils.getLogger().info("PASS cliff chunk: {}, sample=({}, {}, {})", pos, x, column.height(), z);
+                return;
+            }
+        }
+        throw new AssertionError("No exposed land cliff found in the smoke survey");
     }
 
     private static void verifyChunk(ServerLevel level, NewDawnChunkGenerator generator,
@@ -124,6 +147,15 @@ final class SmokeTerrainChecks {
         expect(layers, 64, 320, Blocks.AIR);
         layers.prepare(60, 3, grass, 60);
         expect(layers, 60, 64, Blocks.WATER);
+
+        layers.prepare(90, 5, grass, -64, true);
+        expect(layers, 0, 90, Blocks.STONE);
+        layers.prepare(90, 5, sand, -64, true);
+        expect(layers, 0, 89, Blocks.STONE);
+        expect(layers, 89, 90, Blocks.SANDSTONE);
+        layers.prepare(90, 5, grass, -64, false);
+        expect(layers, 84, 89, Blocks.DIRT);
+        expect(layers, 89, 90, Blocks.GRASS_BLOCK);
     }
 
     private static void expect(TerrainBlockColumn layers, int start, int end, Block expected) {

@@ -74,3 +74,5 @@ tasks.register('verifyJar') {
     }
 }
 tasks.named('check') { dependsOn 'verifyJar' }
+
+apply from: 'gradle/test-install.gradle'

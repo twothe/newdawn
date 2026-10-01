@@ -36,7 +36,7 @@ Both presets use vanilla generation for the Nether and End. Datapacks or mods th
 also replace `minecraft:normal` compete for the same entry; datapack priority determines
 which one wins. No global generator is replaced at runtime, and no client API is needed.
 
-## Preserved algorithm
+## Preserved terrain and redesigned mountains
 
 - `java.util.Random(seed)` initializes 1,024 random bytes for the Simplex field as before.
   This historical field is **not** a standard 256-entry permutation. Replacing it with
@@ -44,20 +44,26 @@ which one wins. No global generator is replaced at runtime, and no client API is
 - All 13 general noise fields, followed by four mountain fields, are initialized in the
   original order. Even the filler field affects later climate and mountain fields by
   consuming random numbers during initialization.
-- Scales, offsets, weights, arithmetic order, rounding, height clamping and float conversion
-  match the original. `BLOCK_SCALE=2` is part of the terrain shape and is deliberately
-  independent of the modern build height.
+- Base-terrain scales, offsets, weights and arithmetic order match the original. Rounding,
+  height clamping and float conversion are also retained. `BLOCK_SCALE=2` remains
+  part of the terrain shape and is deliberately independent of the modern build height.
 - Ground level remains 64: Y=63 is the top water block; a terrain height of 64 means
   the first free block above solid ground at Y=63.
-- Temperature and humidity fields, including altitude correction and forest patches,
-  are preserved. Biome selection now covers all 51 non-river overworld biomes; climate,
+- Temperature and humidity fields, including forest patches and altitude correction through height 128,
+  are preserved. Above 128 the correction continues linearly to suit taller mountains. Biome selection now covers all 51 non-river overworld biomes; climate,
   elevation and depth rules are documented in [biomes.md](biomes.md).
-- Mountain shapes have deliberately not been redesigned. River generation is still absent.
-  Horizontal scales that determine the original terrain variation within a typical view
-  distance are also preserved.
+- Mountain distribution uses the existing field and threshold, with the user-tuned
+  1.8 scale multiplier. Its height profile combines a broad body, subordinate coupled
+  ridges, local noise overlays and direct climate-dependent
+  cliff shaping; see [mountains.md](mountains.md). River generation is still absent.
+- Upland biome and top-material bands reuse the already sampled 23 × 27-block terrain
+  noise for a bounded ±6-block threshold offset. Physical terrain height, sea-level
+  boundaries and heightmaps are unaffected.
 
-A set of 30,720 reference points captured from the separately compiled original code
-protects these rules. The original project is neither modified nor needed for normal builds.
+The original project is neither modified nor needed for builds. Tests exercise the
+current generator's seed handling, concurrent sampling and buffer agreement without
+requiring any sampled terrain to match a historical version. The historical noise
+description above documents the present implementation, not a permanent shape contract.
 
 ## Seed ownership and concurrency
 
@@ -68,10 +74,13 @@ On restart, Minecraft decodes the generator and binds the saved world seed again
 The preset does not store a hard-coded seed.
 
 Core sampling requires neither locks nor RNG calls. `sampleInto` and `sampleChunkInto`
-write into exclusive caller-owned buffers without allocations; `sampleHeight` skips
-climate and filler calculations. The previous snapshot methods remain available.
+write into exclusive caller-owned buffers without allocations. `sampleHeight` skips
+local climate and filler calculations; inside mountain regions it evaluates the four
+broad climate fields needed by the pointwise mountain profile. Full sampling reuses
+those climate values without additional noise queries. The previous snapshot methods
+remain available.
 Altitude-dependent climate corrections are precomputed once for all 255 possible heights
-using the original formula. The BiomeSource maintains a cache of at most 256 entries per
+using the original formula through 128 and a linear continuation above it. The BiomeSource maintains a cache of at most 256 entries per
 worker, using full coordinate keys; collisions cannot change results. This avoids repeated
 climate calculations for vertical biome quarts and samples only the requested column for
 isolated carver queries. Cache misses use a worker-owned `TerrainColumn`.
@@ -120,11 +129,18 @@ API examples, measurement methods and results are in [performance.md](performanc
   Underground aquifers use modern vanilla noise fields. Within the original surface-water
   envelope, our terrain height takes precedence so carvers cannot replace water with air
   based on the different vanilla surface estimate.
-- Surfaces are built in one pass from the biome palette. Changes limited to vanilla
+- Surfaces are built in one pass from the biome palette, with rock exposed on climate-shaped cliff faces. Changes limited to vanilla
   surface rules do not affect this surface. Modern structure terrain adjustment using
   vanilla Beardifier density is also not part of this height field. A generated village
   has been checked; suitable placement of every structure type and third-party mod
-  structure is not guaranteed.
+  structure is not guaranteed. Investigation of the 1.21.1 sources confirms that
+  `Beardifier.forStructuresInChunk` evaluates three-dimensional density around opted-in
+  structure pieces and jigsaw junctions. This is not a heightmap placement switch;
+  integrating it requires a deliberate local density/terrain adaptation design, with
+  material, heightmap, carving and chunk-border checks. Arbitrary placed features do
+  not necessarily opt into structure adaptation at all. No blanket foundation fill
+  or third-party template rewrite is applied. The floating garden in the reported
+  screenshot has not been conclusively identified from saved structure starts.
 - Old chunk-blending data are not evaluated. The port is intended for new worlds.
   Mods that replace the noise router or the entire terrain pipeline require separate
   compatibility checks. Vanilla biomes provide an integration basis, not a blanket
@@ -135,7 +151,7 @@ API examples, measurement methods and results are in [performance.md](performanc
 Within Minecraft 1.21.1, select NeoForge through `neo_version` in `gradle.properties`.
 The core remains unchanged. For a new Minecraft version, review loader metadata,
 pack format, preset/noise-settings data and the few direct Minecraft interfaces;
-then run the build, reference tests and server checks.
+then run the build, current-generator tests and server checks.
 
 Binary compatibility with unknown future Minecraft versions is not promised.
 The architecture limits adaptation to the game integration without preemptively

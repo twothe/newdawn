@@ -21,6 +21,12 @@ final class TerrainBlockColumn {
     private int cursor;
 
     void prepare(int height, int fillerDepth, BiomePalette.Entry palette, int minimumY) {
+        prepare(height, fillerDepth, palette, minimumY, false);
+    }
+
+    /** Climate-shaped cliffs expose rock using the same intervals for chunk fill and isolated queries. */
+    void prepare(int height, int fillerDepth, BiomePalette.Entry palette, int minimumY, boolean exposedRock) {
+        if (exposedRock) fillerDepth = 0;
         minimum = minimumY;
         cursor = minimumY;
         count = 0;
@@ -34,6 +40,14 @@ final class TerrainBlockColumn {
         addUntil(height - 1, material(palette.filler()));
         BlockState top = palette.top() == BiomePalette.Material.GRASS && height < TerrainSampler.SEA_LEVEL
                 ? Blocks.DIRT.defaultBlockState() : material(palette.top());
+        if (exposedRock) {
+            top = switch (palette.top()) {
+                case SAND -> Blocks.SANDSTONE.defaultBlockState();
+                case RED_SAND -> Blocks.RED_SANDSTONE.defaultBlockState();
+                case TERRACOTTA -> Blocks.TERRACOTTA.defaultBlockState();
+                default -> Blocks.STONE.defaultBlockState();
+            };
+        }
         addUntil(height, top);
         addUntil(TerrainSampler.SEA_LEVEL, Blocks.WATER.defaultBlockState());
     }

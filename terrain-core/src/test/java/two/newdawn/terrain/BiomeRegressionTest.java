@@ -31,11 +31,37 @@ public final class BiomeRegressionTest {
         expect("mangrove_swamp", 66, 0.5f, 0.7f, 0, false, 66);
         expect("mushroom_fields", 70, 0.1f, 0.7f, -8, false, 70);
         expect("cherry_grove", 85, 0.2f, 0.3f, 0, true, 85);
+        // Rare cherry window: inclusive lower bounds, exclusive upper bounds, meadow outside.
+        expect("cherry_grove", 85, 0.15f, 0.25f, 0, true, 85);
+        expect("cherry_grove", 85, Math.nextDown(0.25f), Math.nextDown(0.40f), 0, true, 85);
+        expect("meadow", 85, Math.nextDown(0.15f), 0.3f, 0, true, 85);
+        expect("meadow", 85, 0.25f, 0.3f, 0, true, 85);
+        expect("meadow", 85, 0.2f, Math.nextDown(0.25f), 0, true, 85);
+        expect("meadow", 85, 0.2f, 0.40f, 0, true, 85);
+        expect("cherry_grove", 76, 0.2f, 0.3f, 0, true, 76);
+        expect("cherry_grove", 82, 0.2f, 0.3f, 0, false, 82);
+        expect("old_growth_birch_forest", 75, 0.2f, 0.3f, 0, true, 75);
+        expect("old_growth_birch_forest", 81, 0.2f, 0.3f, 0, false, 81);
+        expect("cherry_grove", 103, 0.2f, 0.3f, 0, true, 103);
+        expect("cherry_grove", 104, 0.2f, 0.3f, 0, true, 104);
+        expect("meadow", 106, -0.13565119f, -0.38147548f, 7, false, 106);
+        expect("meadow", 150, 0.1f, 0.3f, 0, false, 150);
+        expect("taiga", 106, -0.3f, 0.0f, 0, false, 106);
+        expect("snowy_slopes", 127, -0.3f, 0.3f, 0, true, 127);
         expect("grove", 85, -0.3f, 0.3f, 0, true, 85);
         expect("snowy_slopes", 95, -0.3f, 0.3f, 0, true, 95);
-        expect("frozen_peaks", 110, -0.3f, -0.3f, 0, true, 110);
-        expect("jagged_peaks", 110, -0.3f, 0.3f, 0, true, 110);
-        expect("stony_peaks", 110, 0.3f, 0.3f, 0, true, 110);
+        expect("frozen_peaks", 128, -0.3f, -0.3f, 0, true, 128);
+        expect("jagged_peaks", 128, -0.3f, 0.3f, 0, true, 128);
+        expect("stony_peaks", 128, 0.3f, 0.3f, 0, true, 128);
+        expectOffset("snowy_slopes", 127, -6, -0.3f, 0.3f, true);
+        expectOffset("frozen_peaks", 127, 6, -0.3f, -0.3f, true);
+        expectOffset("grove", 91, -6, -0.3f, 0.3f, true);
+        expectOffset("snowy_slopes", 91, 6, -0.3f, 0.3f, true);
+        expectOffset("old_growth_birch_forest", 81, -6, 0.2f, 0.3f, false);
+        expectOffset("cherry_grove", 81, 6, 0.2f, 0.3f, false);
+        // Coastlines and water must continue to use the physical terrain height.
+        expectOffset("beach", 64, 6, 0.2f, 0.3f, false);
+        expectOffset("ocean", 62, 6, 0.2f, 0.3f, false);
         expect("lush_caves", 70, 0.2f, 0.7f, 0, false, 40);
         expect("dark_forest", 70, 0.2f, 0.7f, 0, false, 41);
         expect("dripstone_caves", 70, 0.2f, 0, 0, false, 0);
@@ -47,10 +73,15 @@ public final class BiomeRegressionTest {
         Map<String, Integer> surfaceCounts = new TreeMap<>();
         Set<String> reached = new HashSet<>();
         TerrainColumn column = new TerrainColumn();
+        float minimumOffset = 0, maximumOffset = 0;
         for (long seed : new long[]{0, 1, 123456789, -8458999313514431577L}) {
             TerrainSampler sampler = new TerrainSampler(seed);
             for (int z = -256; z < 256; z++) for (int x = -256; x < 256; x++) {
                 sampler.sampleInto(x * 96 + 17, z * 96 - 31, column);
+                require(column.biomeHeightOffset() >= -6 && column.biomeHeightOffset() <= 6,
+                        "Biome height offset exceeded its six-block bound");
+                minimumOffset = Math.min(minimumOffset, column.biomeHeightOffset());
+                maximumOffset = Math.max(maximumOffset, column.biomeHeightOffset());
                 String surface = BiomePalette.select(column).biome();
                 surfaceCounts.merge(surface, 1, Integer::sum);
                 reached.add(surface);
@@ -62,6 +93,7 @@ public final class BiomeRegressionTest {
         Set<String> missing = new java.util.TreeSet<>(EXPECTED);
         missing.removeAll(reached);
         require(missing.isEmpty(), "Biomes unreachable in production noise survey: " + missing);
+        require(minimumOffset < -2 && maximumOffset > 2, "Biome height noise lacks useful variation");
         System.out.println("PASS: all 51 non-river biomes reached across 1048576 production columns; climate/depth boundaries; surfaceCounts=" + surfaceCounts);
     }
 
@@ -70,6 +102,16 @@ public final class BiomeRegressionTest {
         column.height = height; column.temperature = temperature; column.humidity = humidity;
         column.regionHeight = region; column.mountain = mountain; column.fillerDepth = 3;
         require(BiomePalette.selectAt(column, y).biome().equals(biome), "Expected " + biome + " for height=" + height + ", Y=" + y);
+    }
+
+    /** Checks height-band movement while preserving the selected column's physical elevation. */
+    private static void expectOffset(String biome, int height, float offset, float temperature, float humidity, boolean mountain) {
+        TerrainColumn column = new TerrainColumn();
+        column.height = height; column.biomeHeightOffset = offset;
+        column.temperature = temperature; column.humidity = humidity;
+        column.mountain = mountain; column.fillerDepth = 3;
+        require(BiomePalette.select(column).biome().equals(biome),
+                "Expected " + biome + " for height=" + height + ", offset=" + offset);
     }
 
     private static void require(boolean condition, String message) {

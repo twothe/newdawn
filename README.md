@@ -1,12 +1,12 @@
 # New Dawn – NeoForge 1.21.1
 
 New Dawn is a terrain generation mod for Minecraft, now available for NeoForge 1.21.1.
-It continues the Forge 1.7.10 version, preserving its distinctive Simplex noise composition,
-terrain heights, mountains and climate values.
+It continues the Forge 1.7.10 version, retaining its distinctive base terrain and climate
+fields while adding ridged multifractal mountains and climate-shaped cliffs.
 An independent Java core computes the terrain; Minecraft handles the subsequent stages
 using vanilla biomes, cave carvers, decoration, ores, structures and mobs.
 All 51 non-river overworld biomes are selected according to climate, elevation and depth.
-Biome changes and the ocean water-hole fix apply to newly generated chunks; existing
+Mountain changes, biome changes and the ocean water-hole fix apply to newly generated chunks; existing
 areas are not rewritten automatically.
 
 ## Build and run
@@ -27,6 +27,37 @@ The distributable mod JAR is `build/libs/newdawn-1.0.0.jar`. The mod version sta
 JAR; its classes are included in the mod.
 Target platform: **Minecraft 1.21.1, NeoForge 21.1.250 or later within 21.1.x, Java 21**.
 Other Minecraft versions are not declared binary compatible.
+
+### Build from VS Code
+
+Open the project root folder, save your changes, then press **Ctrl+Shift+B** or choose
+**Terminal > Run Build Task**. The default **Build New Dawn** task runs the Gradle
+Wrapper's `build` task, including checks, and produces `build/libs/newdawn-1.0.0.jar`.
+Wait for `BUILD SUCCESSFUL` before using the JAR. No VS Code extension is required
+for this task. The existing Client/Server launch configurations start Minecraft.
+
+The Windows task uses JDK 21 at `C:\Program Files\Java\jdk-21`. If your installation
+is elsewhere, update `windows.options.env.JAVA_HOME` in `.vscode/tasks.json`.
+Other platforms use their configured Java environment. Gradle's cache is kept in
+the project's `.gradle-user-home` directory.
+
+### Optional copy to a test instance
+
+Copy `build.local.properties.example` to `build.local.properties` in the project root
+and set `NEWDAWN_MODS_DIR` to the existing absolute `mods` directory of your test instance.
+Use forward slashes in this properties file, including on Windows, and no surrounding
+quotes. Spaces in the path are supported. The local file is ignored by Git; keep
+machine-specific values there rather than in committed VS Code settings.
+
+You can alternatively set the `NEWDAWN_MODS_DIR` environment variable. It takes
+precedence over the local file. A missing or blank value disables copying.
+The existing VS Code build task and `gradlew build` both use this setting.
+
+Only after the build checks succeed, the release JAR is staged and copied into the
+configured directory, replacing the same filename. Other mods and older differently
+named JARs are left untouched. An invalid destination or copy failure fails the build
+with an explanation. Close the test client before replacing a JAR it has loaded;
+restart it to use the new code. Building only `jar` does not install anything.
 
 The build setup follows the [official 1.21.1 MDK](https://github.com/NeoForgeMDKs/MDK-1.21.1-ModDevGradle).
 Development launches include Java libraries as described by
@@ -75,4 +106,5 @@ Reports and logs remain there. Development checks are excluded from the distribu
 
 Further reading: [Architecture and limitations](docs/architecture.md),
 [Performance and buffer API](docs/performance.md), [Verification evidence](docs/verification.md),
-and [Biome selection and water boundaries](docs/biomes.md).
+[Biome selection and water boundaries](docs/biomes.md), and
+[Mountain shapes and cliffs](docs/mountains.md).

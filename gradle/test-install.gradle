@@ -1,0 +1,40 @@
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+
+// Optional local deployment runs only after this project's build dependencies have succeeded.
+// Environment overrides the ignored UTF-8 properties file; a missing/blank value disables copying.
+def localSettings = providers.fileContents(layout.projectDirectory.file('build.local.properties')).asText.orElse('')
+def destinationSetting = providers.environmentVariable('NEWDAWN_MODS_DIR').orElse(localSettings.map { text ->
+    def settings = new Properties()
+    settings.load(new StringReader(text))
+    settings.getProperty('NEWDAWN_MODS_DIR', '')
+})
+def releaseArchive = tasks.named('jar', Jar).flatMap { it.archiveFile }
+
+tasks.named('build') {
+    doLast('installTestMod') {
+        String destination = destinationSetting.get().trim()
+        if (destination.isEmpty()) {
+            logger.lifecycle('Test mod copy skipped: NEWDAWN_MODS_DIR is not set.')
+            return
+        }
+        def directory = new File(destination)
+        if (!directory.isAbsolute() || !directory.isDirectory()) {
+            throw new GradleException('NEWDAWN_MODS_DIR must name an existing absolute mods directory. Check the environment or build.local.properties.')
+        }
+        def source = releaseArchive.get().asFile.toPath()
+        def target = directory.toPath().resolve(source.fileName)
+        def staged = null
+        try {
+            // Stage beside the destination so a failed copy never truncates the installed JAR.
+            staged = Files.createTempFile(directory.toPath(), '.newdawn-', '.tmp')
+            Files.copy(source, staged, StandardCopyOption.REPLACE_EXISTING)
+            Files.move(staged, target, StandardCopyOption.REPLACE_EXISTING)
+            logger.lifecycle('Copied test mod: {}', target)
+        } catch (IOException failure) {
+            throw new GradleException('Could not install the test mod. Close Minecraft if it locks the JAR, and check destination write access.', failure)
+        } finally {
+            if (staged != null) Files.deleteIfExists(staged)
+        }
+    }
+}

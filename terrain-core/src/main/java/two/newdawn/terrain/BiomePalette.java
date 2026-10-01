@@ -45,11 +45,13 @@ public final class BiomePalette {
 
     /** Surface choice, used for both biome columns and matching raw surface materials. */
     public static Entry select(TerrainSample sample) {
-        return surface(sample.height(), sample.regionHeight(), sample.mountain(), sample.temperature(), sample.humidity()).entry;
+        return surface(sample.height(), sample.biomeHeightOffset(), sample.regionHeight(), sample.mountain(),
+                sample.temperature(), sample.humidity()).entry;
     }
 
     public static Entry select(TerrainColumn column) {
-        return surface(column.height(), column.regionHeight(), column.mountain(), column.temperature(), column.humidity()).entry;
+        return surface(column.height(), column.biomeHeightOffset(), column.regionHeight(), column.mountain(),
+                column.temperature(), column.humidity()).entry;
     }
 
     /** Complete three-dimensional choice. The surface remains intact above the cave ceiling. */
@@ -69,11 +71,15 @@ public final class BiomePalette {
     /** Leave at least 20 blocks of terrain above cave biomes, including low ocean floors. */
     public static int caveCeiling(TerrainColumn column) { return Math.min(40, column.height() - 20); }
     /** Deep Dark is restricted to deep rock beneath elevated terrain. */
-    public static boolean hasDeepDark(TerrainColumn column) { return column.mountain() && column.height() >= 92; }
+    public static boolean hasDeepDark(TerrainColumn column) {
+        return column.mountain() && column.height() + column.biomeHeightOffset() >= 92;
+    }
     public static Entry deepDark() { return Choice.DEEP_DARK.entry; }
     public static Set<String> biomeIds() { return BIOMES; }
 
-    private static Choice surface(int height, int regionHeight, boolean mountain, float temperature, float humidity) {
+    private static Choice surface(int height, float biomeHeightOffset, int regionHeight,
+                                  boolean mountain, float temperature, float humidity) {
+        float uplandHeight = height + biomeHeightOffset;
         if (height < TerrainSampler.SEA_LEVEL - 1) return ocean(height, temperature);
         // Rare humid, temperate islands in low regional basins, selected without per-column randomness.
         if (height >= 64 && height <= 76 && regionHeight <= -7 && temperature >= -0.15f && temperature < 0.25f && humidity >= 0.65f) {
@@ -84,11 +90,12 @@ public final class BiomePalette {
         }
         if (height <= TerrainSampler.SEA_LEVEL) return temperature <= -0.5f ? Choice.SNOWY_BEACH : Choice.BEACH;
         if (height <= 68 && mountain) return Choice.STONY_SHORE;
-        if (height >= 104) {
+        if (mountain && uplandHeight >= 128) {
             if (temperature >= 0.1f) return Choice.STONY_PEAKS;
             return humidity < 0.0f ? Choice.FROZEN_PEAKS : Choice.JAGGED_PEAKS;
         }
-        if (height >= 82 || (mountain && height >= 76)) return highland(height, temperature, humidity);
+        if (uplandHeight >= 82 || (mountain && uplandHeight >= 76))
+            return highland(uplandHeight, mountain, temperature, humidity);
         return lowland(temperature, humidity);
     }
 
@@ -101,9 +108,10 @@ public final class BiomePalette {
         return Choice.WARM_OCEAN;
     }
 
-    private static Choice highland(int height, float temperature, float humidity) {
+    private static Choice highland(float uplandHeight, boolean mountain, float temperature, float humidity) {
         if (temperature <= -0.25f) {
-            if (height >= 92 || humidity < 0.1f) return Choice.SNOWY_SLOPES;
+            if (!mountain) return lowland(temperature, humidity);
+            if (uplandHeight >= 92 || humidity < 0.1f) return Choice.SNOWY_SLOPES;
             return Choice.GROVE;
         }
         if (temperature >= 0.55f) {
@@ -111,10 +119,10 @@ public final class BiomePalette {
             if (humidity < 0.1f) return Choice.WOODED_BADLANDS;
             return humidity < 0.4f ? Choice.WINDSWEPT_SAVANNA : Choice.SAVANNA_PLATEAU;
         }
-        if (humidity < -0.45f) return Choice.WINDSWEPT_GRAVELLY_HILLS;
-        if (humidity < -0.15f) return Choice.WINDSWEPT_HILLS;
+        if (humidity < -0.85f) return Choice.WINDSWEPT_GRAVELLY_HILLS;
+        if (humidity < -0.45f) return Choice.WINDSWEPT_HILLS;
         if (humidity > 0.65f) return Choice.WINDSWEPT_FOREST;
-        if (temperature >= 0.05f && humidity >= 0.1f && humidity < 0.55f) return Choice.CHERRY_GROVE;
+        if (temperature >= 0.15f && temperature < 0.25f && humidity >= 0.25f && humidity < 0.40f) return Choice.CHERRY_GROVE;
         return Choice.MEADOW;
     }
 

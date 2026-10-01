@@ -5,10 +5,20 @@ and Frozen River are excluded. Selection is deterministic and uses the existing
 temperature, humidity, height, regional-height and mountain values. It requires no
 additional noise queries or per-block random decisions. The Nether and End remain vanilla.
 
+Upland biome thresholds use the actual terrain height plus an offset of up to six
+blocks in either direction. The offset reuses the existing block-scale Simplex
+value (23 × 27 blocks), so peak, slope and highland bands follow irregular lines
+instead of a single contour. Deep Dark's elevated-terrain condition uses the same
+offset. Ocean, beach, wetland and shore choices use physical height to preserve
+their relationship to sea level. This offset does not move blocks or change
+heightmaps. The biome choice also determines the raw top material, so the two
+remain consistent for each sampled column.
+
 ## Climate distribution
 
 These are dimensionless noise values, not degrees Celsius. Temperature and humidity
-still include the original altitude correction.
+include altitude correction: the original curve through height 128, then a linear
+continuation of -0.004 per block above 128.
 
 | Region | Selection |
 | --- | --- |
@@ -30,27 +40,37 @@ and does not make the terrain deeper. Heights 63/64 form the beach band; low wet
 rare mushroom areas can override that band on land. Low mountain flanks up to height 68
 receive Stony Shore.
 
-Surface materials match the biome: sand in warm oceans, gravel in cooler oceans, mycelium
+Surface materials normally match the biome; exposed cliff faces use stone, sandstone or
+terracotta according to the surface material. Away from cliffs: sand in warm oceans, gravel in cooler oceans, mycelium
 in mushroom fields, podzol in old-growth taigas, mud in mangrove areas, red sand/terracotta
 in badlands, and snow/ice blocks in cold mountain biomes.
 
 ## Mountain biomes
 
-Thresholds fit the existing terrain, whose mountains are considerably lower than tall
-vanilla peaks. The terrain shape itself is unchanged.
+Mountain geometry and biome eligibility are separate: a high base-terrain hill must
+not become a peak merely because of its elevation. See [mountains.md](mountains.md).
 
-- Highland selection starts at height 82, or at 76 when the mountain flag is set.
-- Cold, humid intermediate elevations receive Grove; drier or higher cold areas receive
-  Snowy Slopes.
-- Temperate highlands receive Meadow, or Cherry Grove with suitable warmth and humidity.
+- The mountain flag requires at least 24 blocks of added mountain relief.
+- Highland selection starts around height 82, or around 76 when the mountain flag is set.
+- Cold, humid mountain flanks receive Grove; drier or higher cold mountain areas receive
+  Snowy Slopes. Cold hills without substantial mountain relief retain lowland climate biomes.
+- Temperate highlands receive Meadow, or rare Cherry Grove where temperature is
+  at least 0.15 and below 0.25, and humidity is at least 0.25 and below 0.40.
   Dry and very humid variants become Windswept Hills, Gravelly Hills or Forest.
 - Warm highlands become Badlands, Eroded/Wooded Badlands, Windswept Savanna or Savanna
   Plateau depending on humidity.
-- Peak biomes start at height 104: warmer areas receive Stony Peaks; other areas receive
+- Peak biomes require the mountain flag and start around height 128: warmer areas receive Stony Peaks; other areas receive
   Frozen Peaks when dry or Jagged Peaks when more humid.
 
-These names do not introduce new mountain shapes: peaks still follow the existing height
-field. River biomes are deliberately excluded until actual river generation exists.
+Biome names do not determine mountain geometry: the terrain profile is calculated first. River biomes are deliberately excluded until actual river generation exists.
+
+The rare Cherry Grove window replaces the former temperature >= 0.05 / humidity
+0.10–0.55 selection. In the four-seed, 1,048,576-column production survey, Cherry
+Grove occupied 1,514 positions (0.144% of all sampled positions) before the taller
+mountain follow-up, down from
+20,061. Positions excluded by the narrower window become Meadow; height eligibility
+retains the same numerical thresholds. With the taller mountain profile the count
+is 1,598 (0.152%). This measures area, not the number or size of connected groves.
 
 ## Cave biomes without additional 3D noise
 
@@ -98,7 +118,8 @@ above sea level.
 
 These changes apply to **newly generated chunks**. Saved biomes and water holes are not
 rewritten automatically. Biomes and surface materials can change at boundaries with
-older chunks; the underlying height field remains the same. The save read for diagnosis
+older chunks. The mountain redesign also changes heights inside mountain regions;
+see [mountains.md](mountains.md). The save read for diagnosis
 was not modified.
 
 ```powershell
@@ -107,7 +128,7 @@ was not modified.
 
 `terrain-core:biomeTest` checks fixed climate/elevation boundaries, the complete set of
 51 biomes and their reachability in 1,048,576 actual terrain columns across four seeds.
-The original 30,720 terrain/climate fixtures remain unchanged; their old biome names are
-historical reference data, not requirements for the new selection. The server check
-covers the water-hole reproduction area on the reported seed, concurrent vertical cache
+The tests check current biome rules and reachability without comparing terrain shapes
+to the Forge 1.7.10 generator. The server check covers the water-hole reproduction
+area on the reported seed, concurrent vertical cache
 queries and height predicates for every surface material used.

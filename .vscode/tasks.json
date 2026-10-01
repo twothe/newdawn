@@ -1,0 +1,30 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build New Dawn",
+      "type": "shell",
+      "command": "./gradlew",
+      "args": ["build", "--console=plain"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "GRADLE_USER_HOME": "${workspaceFolder}/.gradle-user-home"
+        }
+      },
+      "windows": {
+        "command": ".\\gradlew.bat",
+        "options": {
+          "env": {
+            "JAVA_HOME": "C:\\Program Files\\Java\\jdk-21",
+            "GRADLE_USER_HOME": "${workspaceFolder}/.gradle-user-home"
+          }
+        }
+      },
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true },
+      "runOptions": { "instanceLimit": 1 }
+    }
+  ]
+}
