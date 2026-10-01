@@ -28,6 +28,7 @@ public final class NewDawnBiomeSource extends BiomeSource {
     public static final MapCodec<NewDawnBiomeSource> CODEC = RecordCodecBuilder.mapCodec(instance ->
             instance.group(RegistryOps.retrieveGetter(Registries.BIOME)).apply(instance, NewDawnBiomeSource::new));
     private final Map<String, Holder<Biome>> biomes;
+    private final Holder<Biome> deepDarkBiome;
     private volatile TerrainSampler terrain;
     private final ThreadLocal<BiomeCache> cache = ThreadLocal.withInitial(BiomeCache::new);
 
@@ -37,6 +38,7 @@ public final class NewDawnBiomeSource extends BiomeSource {
             resolved.put(id, lookup.getOrThrow(ResourceKey.create(Registries.BIOME, ResourceLocation.withDefaultNamespace(id))));
         }
         biomes = Map.copyOf(resolved);
+        deepDarkBiome = biomes.get(BiomePalette.deepDark().biome());
     }
 
     /** Rebinding a source to a different world is a lifecycle error, never a silent seed change. */
@@ -76,9 +78,8 @@ public final class NewDawnBiomeSource extends BiomeSource {
             local.deepDark[index] = BiomePalette.hasDeepDark(local.column);
         }
         int blockY = QuartPos.toBlock(quartY);
-        if (blockY <= BiomePalette.DEEP_DARK_CEILING && local.deepDark[index]) return biomes.get(BiomePalette.deepDark().biome());
-        if (blockY <= local.caveCeilings[index] && local.caves.get(index) != null) return local.caves.get(index);
-        return result;
+        return BiomePalette.selectVertical(blockY, result, local.caves.get(index), local.caveCeilings[index],
+                local.deepDark[index], deepDarkBiome);
     }
 
     // Bounded worker-local cache: vertical quarts repeat, while carvers probe isolated distant columns.

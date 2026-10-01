@@ -6,20 +6,22 @@ import java.util.Random;
 
 /** Warmed CPU/allocation measurements of production APIs; excludes full Minecraft generation. */
 public final class TerrainBenchmark {
-    private static volatile long blackhole;
+    static volatile long blackhole;
     private static volatile Object retained;
+    private static boolean brief;
     private static final int CHUNKS = 8192;
 
     public static void main(String[] args) {
         boolean verifyAllocations = args.length == 1 && args[0].equals("--verify-allocations");
         if (args.length > 0 && !verifyAllocations) throw new IllegalArgumentException("Expected --verify-allocations or no arguments");
+        brief = verifyAllocations;
         TerrainSampler sampler = new TerrainSampler(123456789L);
         if (!verifyAllocations) {
             measure("snapshot-chunks", CHUNKS, () -> run(sampler, CHUNKS));
             measure("snapshot-height-queries", CHUNKS * 256, () -> heights(sampler, CHUNKS * 256));
             measure("owned-buffer-chunks", CHUNKS, () -> buffered(sampler, null, CHUNKS));
         }
-        int chunks = verifyAllocations ? 1024 : CHUNKS;
+        int chunks = verifyAllocations ? 256 : CHUNKS;
         TerrainChunk reusable = new TerrainChunk();
         double chunkBytes = measure("reused-buffer-chunks", chunks, () -> buffered(sampler, reusable, chunks));
         double heightBytes = measure("height-only-queries", chunks * 256, () -> heightOnly(sampler, chunks * 256));
@@ -74,7 +76,7 @@ public final class TerrainBenchmark {
         blackhole = sum;
     }
 
-    private static double measure(String name, int operations, Runnable operation) {
+    static double measure(String name, int operations, Runnable operation) {
         var bean = ManagementFactory.getThreadMXBean();
         var allocation = bean instanceof com.sun.management.ThreadMXBean supported
                 && supported.isThreadAllocatedMemorySupported() ? supported : null;
@@ -82,6 +84,7 @@ public final class TerrainBenchmark {
         long thread = Thread.currentThread().threadId();
         for (int warmup = 0; warmup < 3; warmup++) operation.run();
         double minimumBytes = Double.POSITIVE_INFINITY;
+        double[] times = new double[3];
         for (int trial = 0; trial < 3; trial++) {
             long before = allocation == null ? 0 : allocation.getThreadAllocatedBytes(thread);
             long start = System.nanoTime();
@@ -89,8 +92,13 @@ public final class TerrainBenchmark {
             double seconds = (System.nanoTime() - start) / 1_000_000_000.0;
             double bytes = allocation == null ? -1 : (allocation.getThreadAllocatedBytes(thread) - before) / (double) operations;
             minimumBytes = Math.min(minimumBytes, bytes);
-            System.out.printf(Locale.ROOT, "%s: %.0f ops/s, %.3f us/op, %.1f B/op, checksum=%d%n",
+            times[trial] = seconds * 1_000_000 / operations;
+            if (!brief) System.out.printf(Locale.ROOT, "%s: %.0f ops/s, %.3f us/op, %.1f B/op, checksum=%d%n",
                     name, operations / seconds, seconds * 1_000_000 / operations, bytes, blackhole);
+        }
+        if (brief) {
+            java.util.Arrays.sort(times);
+            System.out.printf(Locale.ROOT, "%s: median %.3f us/op, %.1f B/op%n", name, times[1], minimumBytes);
         }
         return minimumBytes;
     }

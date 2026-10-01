@@ -1,5 +1,40 @@
 # Verification evidence
 
+## Component and tooling separation (2026-10-01)
+
+The core now separates its noise catalog, climate rules, relief composition and
+profiles. Vertical biome precedence is shared with the Minecraft holder cache.
+The aquifer samples heights lazily. Tests and measurements have dedicated source
+sets; the release archive check rejects classes originating from any development
+source tree, including nested classes. Normal client/server launches omit the test
+entry point; the integration launch includes it explicitly.
+
+Java 21 `:terrain-core:check build`, all extended suites, component benchmarks and
+fresh/reloaded server checks passed. The shortened normal consistency suite checks
+6,912 points; extended coverage retains 30,720. The biome survey reaches all 51
+non-river biomes, and mountain surveys retain their existing coverage checks.
+The aquifer test proves that construction, positive density and above-sea queries do
+not sample terrain, repeated queries reuse one height, and underground delegation
+preserves fluid-update state. The 81 reported ocean chunks contain zero water holes.
+
+A temporary 262,144-column comparison against the immediately preceding implementation
+found no height or terrain-flag changes. Reciprocal scale multiplication changed 222
+columns' climate floats by at most 2.385e-7. These accepted numerical differences do
+not impose a new visual compatibility gate. Client appearance must still be assessed
+in the intended modpack, including its decoration and structures.
+
+Fresh and reloaded checks passed on seed `-8458999313514431577` in
+`build/smoke-8556dbb2baf6441c82a2cf3f60b190ec`; the saved-world checksum remained
+`2058953990387916042` across restart. Core and server JFR launches produced readable
+recordings; the server profiling run also passed on reload. Profiling timings were
+excluded from before/after CPU comparisons. See [performance.md](performance.md) for
+measurements and their limits.
+
+Evidence is recorded locally in `build/architecture-final.log`,
+`build/architecture-workflow-check.log`, `build/architecture-comparison.log` and
+`build/architecture-server-profile.log`. The build installed into a workspace test
+mods directory. The external modpack and saved worlds were not modified.
+
 ## Upland biome boundary variation (2026-10-01)
 
 Upland biome bands now use a bounded ±6-block offset derived from the existing
@@ -79,7 +114,7 @@ into that instance is performed by the user's next build.
 
 ## Current-generator consistency and concurrency
 
-`terrain-core:regressionTest` samples 30,720 positions from six seeds in the current
+`terrain-core:regressionTest` samples 6,912 positions from six seeds in the current
 implementation, including contiguous negative/positive coordinates and distant
 locations. It checks serial results against eight concurrent workers, point and chunk
 buffers, height-only queries, and biome selection. The serial results exist only in
@@ -88,9 +123,10 @@ Additional assertions cover chunk indexing, climate bands, shore/ocean precedenc
 seed dependence and coordinate overflow. Buffer tests verify reuse, independent
 storage, immutable snapshots, invalid indices and invalid inputs.
 
-`terrain-core:biomeTest` separately protects modern selection: 51 non-river vanilla
-overworld biomes, fixed climate/elevation/depth boundaries and reachability of all
-51 biomes in 1,048,576 actual terrain columns across four seeds.
+`terrain-core:biomeTest` protects the 51-biome inventory and explicit climate/elevation/depth
+boundaries, with a short 9,216-column production sample. `:terrain-core:extendedCheck`
+adds the 30,720-point consistency suite and reachability of all 51 biomes in
+1,048,576 actual terrain columns across four seeds.
 See [biomes.md](biomes.md) for details.
 
 `terrain-core:allocationTest` is also part of `check`. After warmup, reusable APIs must
@@ -103,7 +139,8 @@ and passed on the JDK used here.
 
 `terrain-core:mountainTest` checks finite, bounded, monotone influence, finite
 nonnegative profile relief, a climate-dependent cliff response and buffer propagation.
-Two production surveys cover 589,824 columns each, checking height-only agreement
+`mountainExtendedTest` (included in `extendedCheck`) adds two production surveys of
+589,824 columns each, checking height-only agreement
 and mountain/cliff reachability. Heights, exact climate bits, fixed peak locations,
 mountain area and precise cliff positions remain open to visual tuning. Climate affects
 shape through direct arithmetic; no neighboring columns are sampled.
@@ -141,6 +178,8 @@ Checks include:
   tree blocks are counted as well.
 - Locating and generating a village with a valid StructureStart.
 - Comparing a block-state checksum after saving and restarting.
+- Lazy aquifer heights: no eager/irrelevant sampling, one query per requested column,
+  independent column keys and preserved delegate fluid-update state.
 - The aquifer boundary contract and, on the reported seed, 81 fully generated chunks in
   the water-hole reproduction area: 0 air blocks inside the original water envelope,
   including after restart, compared with 402 before the fix.

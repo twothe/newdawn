@@ -27,8 +27,8 @@ import java.nio.file.Path;
 
 /** Development-only real-server regression; excluded from the distributable jar. */
 @EventBusSubscriber(modid = NewDawn.MOD_ID)
-public final class SmokeTest {
-    private SmokeTest() {}
+public final class ServerIntegrationTest {
+    private ServerIntegrationTest() {}
 
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
@@ -36,14 +36,14 @@ public final class SmokeTest {
         var server = event.getServer();
         try {
             ServerLevel level = server.overworld();
-            SmokePresetChecks.verify(level);
+            PresetIntegrationChecks.verify(level);
             level.getGameRules().getRule(GameRules.RULE_RANDOMTICKING).set(0, server);
             require(level.getChunkSource().getGenerator() instanceof NewDawnChunkGenerator, "World preset did not select New Dawn");
             var generator = (NewDawnChunkGenerator) level.getChunkSource().getGenerator();
             var source = (NewDawnBiomeSource) generator.getBiomeSource();
-            SmokeWaterChecks.verify(level, source.terrain());
-            SmokeTerrainChecks.run(level, generator);
-            if (Boolean.getBoolean("newdawn.benchmarkGeneration")) SmokePerformance.run(level, generator);
+            WaterIntegrationChecks.verify(level, source.terrain());
+            TerrainIntegrationChecks.run(level, generator);
+            if (Boolean.getBoolean("newdawn.benchmarkGeneration")) GenerationBenchmark.run(level, generator);
             require(source.terrain().seed() == level.getSeed(), "World seed was not bound");
             var biomeOrder = source.possibleBiomes().stream().map(biome -> biome.unwrapKey().orElseThrow().location().toString()).toList();
             require(biomeOrder.equals(biomeOrder.stream().sorted().toList()), "Biome encounter order would change feature seeds across JVMs");

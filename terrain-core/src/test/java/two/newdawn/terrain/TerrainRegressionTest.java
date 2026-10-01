@@ -10,6 +10,8 @@ import java.util.concurrent.Executors;
 /** Checks seeded sampling, output buffers, and concurrent readers without freezing terrain geometry. */
 public final class TerrainRegressionTest {
     public static void main(String[] args) throws Exception {
+        boolean extended = args.length == 1 && args[0].equals("--extended");
+        if (args.length > 0 && !extended) throw new IllegalArgumentException("Expected --extended or no arguments");
         List<Fixture> fixtures = new ArrayList<>();
         Map<Long, TerrainSampler> samplers = new java.util.HashMap<>();
         Random coordinates = new Random(0x4E45574441574EL);
@@ -19,7 +21,7 @@ public final class TerrainRegressionTest {
             for (int z = -16; z < 16; z++) for (int x = -16; x < 16; x++) {
                 fixtures.add(new Fixture(seed, x, z, sampler.sample(x, z)));
             }
-            for (int index = 0; index < 4096; index++) {
+            for (int index = 0; index < (extended ? 4096 : 128); index++) {
                 int x = coordinates.nextInt(-2_000_000, 2_000_000);
                 int z = coordinates.nextInt(-2_000_000, 2_000_000);
                 fixtures.add(new Fixture(seed, x, z, sampler.sample(x, z)));

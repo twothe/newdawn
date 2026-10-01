@@ -1,10 +1,20 @@
 package two.newdawn.terrain;
 
+import static two.newdawn.terrain.NoiseMath.smooth;
+
 /**
  * Climate-gated, bounded cliff deformation of a mountain height field.
  * All inputs belong to the current column; no slope probes or neighboring terrain are needed.
  */
 final class CliffProfile {
+    private static final double MINIMUM_INFLUENCE = 0.08;
+    private static final double HEIGHT_AMPLITUDE = 44.0;
+    private static final double FACE_HALF_WIDTH = 0.075;
+    private static final double END_WIDENING = 0.10;
+    private static final double APRON_WIDTH = 2.5;
+    private static final double FACE_WEIGHT = 0.80;
+    private static final double APRON_WEIGHT = 0.20;
+
     private CliffProfile() {}
 
     /**
@@ -12,15 +22,19 @@ final class CliffProfile {
      * Zero activation permits the caller to skip the dedicated cliff noise query entirely.
      */
     static double strength(double influence, double temperature, double humidity, double patchNoise) {
-        if (influence <= 0.08) return 0.0;
-        double dry = 1.0 - smooth(-0.45, 0.30, humidity);
-        double frost = smooth(-0.70, -0.25, temperature) * (1.0 - smooth(-0.15, 0.15, temperature))
-                * smooth(-0.35, 0.35, humidity);
+        if (influence <= MINIMUM_INFLUENCE) return 0.0;
+        return strengthFromWeathering(influence, ClimateRules.dryness(humidity),
+                ClimateRules.frostWeathering(temperature, humidity), patchNoise);
+    }
+
+    /** Composition entry point sharing weathering with the mountain body. */
+    static double strengthFromWeathering(double influence, double dry, double frost, double patchNoise) {
+        if (influence <= MINIMUM_INFLUENCE) return 0.0;
         double weathering = Math.min(1.0, 0.15 + dry * 0.80 + frost * 0.65);
         // Favorable climates widen the eligible patches as well as increasing their relief.
         double threshold = 0.55 - weathering * 0.85;
         double patch = smooth(threshold, threshold + 0.30, patchNoise);
-        return influence * smooth(0.08, 0.40, influence) * weathering * patch;
+        return influence * smooth(MINIMUM_INFLUENCE, 0.40, influence) * weathering * patch;
     }
 
     /**
@@ -33,12 +47,12 @@ final class CliffProfile {
         double position = noise + local * 0.025 + secondary * 0.06;
         // Keep strong faces steep, but avoid spending the full drop in one or two block columns.
         double endBlend = 1.0 - smooth(0.15, 0.55, strength);
-        double halfWidth = 0.075 + (secondary + 1.0) * 0.0125 + endBlend * 0.10;
-        double amplitude = strength * 44.0;
+        double halfWidth = FACE_HALF_WIDTH + (secondary + 1.0) * 0.0125 + endBlend * END_WIDENING;
+        double amplitude = strength * HEIGHT_AMPLITUDE;
         double face = smooth(-halfWidth, halfWidth, position);
-        double apron = smooth(-halfWidth * 2.5, halfWidth * 2.5, position);
+        double apron = smooth(-halfWidth * APRON_WIDTH, halfWidth * APRON_WIDTH, position);
         // Most relief remains in the rock face; a smaller share connects both sides to the slope.
-        double transition = face * 0.80 + apron * 0.20;
+        double transition = face * FACE_WEIGHT + apron * APRON_WEIGHT;
         double shoulder = smooth(-0.75, 0.75, position);
         if (target != null) {
             target.exposedRock = amplitude >= 6.0 && Math.abs(position) < halfWidth * 0.85;
@@ -46,8 +60,4 @@ final class CliffProfile {
         return amplitude * (transition - shoulder);
     }
 
-    private static double smooth(double lower, double upper, double value) {
-        double t = Math.max(0.0, Math.min(1.0, (value - lower) / (upper - lower)));
-        return t * t * (3.0 - 2.0 * t);
-    }
 }

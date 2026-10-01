@@ -10,6 +10,14 @@ public final class BiomePalette {
     public enum Material { GRASS, DIRT, STONE, GRAVEL, SAND, TERRACOTTA, RED_SAND, MYCELIUM, PODZOL, MUD, SNOW_BLOCK, PACKED_ICE }
     public record Entry(String biome, Material top, Material filler) {}
     public static final int DEEP_DARK_CEILING = -24;
+    // Elevations use the sampled local offset; coastal and underwater rules use physical height.
+    private static final int PEAK_HEIGHT = 128;
+    private static final int UPLAND_HEIGHT = 82;
+    private static final int MOUNTAIN_UPLAND_HEIGHT = 76;
+    private static final int SNOWY_SLOPE_HEIGHT = 92;
+    private static final int DEEP_DARK_MINIMUM_SURFACE = 92;
+    private static final int CAVE_ROOF_THICKNESS = 20;
+    private static final int MAXIMUM_CAVE_CEILING = 40;
 
     private enum Choice {
         PLAINS, SUNFLOWER_PLAINS, SNOWY_PLAINS,
@@ -56,9 +64,21 @@ public final class BiomePalette {
 
     /** Complete three-dimensional choice. The surface remains intact above the cave ceiling. */
     public static Entry selectAt(TerrainColumn column, int blockY) {
-        if (blockY <= DEEP_DARK_CEILING && hasDeepDark(column)) return deepDark();
-        Entry cave = caveBiome(column);
-        return blockY <= caveCeiling(column) && cave != null ? cave : select(column);
+        Entry underground = selectVertical(blockY, null, caveBiome(column), caveCeiling(column),
+                hasDeepDark(column), deepDark());
+        return underground != null ? underground : select(column);
+    }
+
+    /**
+     * Applies depth precedence to preselected candidates, including cached game registry holders.
+     * A null cave retains the surface candidate. Surface may be null to defer its computation.
+     * The Deep Dark candidate must be present when hasDeepDark is true.
+     * This is the shared vertical rule for direct and cached biome queries, without allocation.
+     */
+    public static <T> T selectVertical(int blockY, T surface, T cave, int caveCeiling,
+                                       boolean hasDeepDark, T deepDarkBiome) {
+        if (blockY <= DEEP_DARK_CEILING && hasDeepDark) return deepDarkBiome;
+        return blockY <= caveCeiling && cave != null ? cave : surface;
     }
 
     /** Cached candidate for normal underground elevations; null retains the surface biome. */
@@ -69,10 +89,10 @@ public final class BiomePalette {
     }
 
     /** Leave at least 20 blocks of terrain above cave biomes, including low ocean floors. */
-    public static int caveCeiling(TerrainColumn column) { return Math.min(40, column.height() - 20); }
+    public static int caveCeiling(TerrainColumn column) { return Math.min(MAXIMUM_CAVE_CEILING, column.height() - CAVE_ROOF_THICKNESS); }
     /** Deep Dark is restricted to deep rock beneath elevated terrain. */
     public static boolean hasDeepDark(TerrainColumn column) {
-        return column.mountain() && column.height() + column.biomeHeightOffset() >= 92;
+        return column.mountain() && column.height() + column.biomeHeightOffset() >= DEEP_DARK_MINIMUM_SURFACE;
     }
     public static Entry deepDark() { return Choice.DEEP_DARK.entry; }
     public static Set<String> biomeIds() { return BIOMES; }
@@ -90,11 +110,11 @@ public final class BiomePalette {
         }
         if (height <= TerrainSampler.SEA_LEVEL) return temperature <= -0.5f ? Choice.SNOWY_BEACH : Choice.BEACH;
         if (height <= 68 && mountain) return Choice.STONY_SHORE;
-        if (mountain && uplandHeight >= 128) {
+        if (mountain && uplandHeight >= PEAK_HEIGHT) {
             if (temperature >= 0.1f) return Choice.STONY_PEAKS;
             return humidity < 0.0f ? Choice.FROZEN_PEAKS : Choice.JAGGED_PEAKS;
         }
-        if (uplandHeight >= 82 || (mountain && uplandHeight >= 76))
+        if (uplandHeight >= UPLAND_HEIGHT || (mountain && uplandHeight >= MOUNTAIN_UPLAND_HEIGHT))
             return highland(uplandHeight, mountain, temperature, humidity);
         return lowland(temperature, humidity);
     }
@@ -111,7 +131,7 @@ public final class BiomePalette {
     private static Choice highland(float uplandHeight, boolean mountain, float temperature, float humidity) {
         if (temperature <= -0.25f) {
             if (!mountain) return lowland(temperature, humidity);
-            if (uplandHeight >= 92 || humidity < 0.1f) return Choice.SNOWY_SLOPES;
+            if (uplandHeight >= SNOWY_SLOPE_HEIGHT || humidity < 0.1f) return Choice.SNOWY_SLOPES;
             return Choice.GROVE;
         }
         if (temperature >= 0.55f) {

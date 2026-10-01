@@ -1,6 +1,12 @@
 // Standalone algorithm and regression runner; intentionally no game or test-framework dependencies.
 plugins { id 'java-library' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+sourceSets {
+    benchmark {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 21 }
 tasks.register('regressionTest', JavaExec) {
     dependsOn testClasses
@@ -8,14 +14,14 @@ tasks.register('regressionTest', JavaExec) {
     mainClass = 'two.newdawn.terrain.TerrainRegressionTest'
 }
 tasks.register('benchmark', JavaExec) {
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath
+    dependsOn benchmarkClasses
+    classpath = sourceSets.benchmark.runtimeClasspath
     mainClass = 'two.newdawn.terrain.TerrainBenchmark'
 }
 tasks.named('test') { enabled = false }
 tasks.register('allocationTest', JavaExec) {
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath
+    dependsOn benchmarkClasses
+    classpath = sourceSets.benchmark.runtimeClasspath
     mainClass = 'two.newdawn.terrain.TerrainBenchmark'
     args '--verify-allocations'
 }
@@ -33,3 +39,29 @@ tasks.register('mountainTest', JavaExec) {
     mainClass = 'two.newdawn.terrain.MountainRegressionTest'
 }
 tasks.named('check') { dependsOn mountainTest }
+
+// Large geographic surveys are explicit, rather than part of every edit/build cycle.
+['Terrain', 'Biome', 'Mountain'].each { suite ->
+    tasks.register("${suite.toLowerCase()}ExtendedTest", JavaExec) {
+        dependsOn testClasses
+        classpath = sourceSets.test.runtimeClasspath
+        mainClass = "two.newdawn.terrain.${suite}RegressionTest"
+        args '--extended'
+    }
+}
+tasks.register('extendedCheck') {
+    dependsOn check, terrainExtendedTest, biomeExtendedTest, mountainExtendedTest
+}
+
+tasks.register('componentBenchmark', JavaExec) {
+    dependsOn benchmarkClasses
+    classpath = sourceSets.benchmark.runtimeClasspath
+    mainClass = 'two.newdawn.terrain.ComponentBenchmark'
+}
+
+tasks.register('profile', JavaExec) {
+    dependsOn benchmarkClasses
+    classpath = sourceSets.benchmark.runtimeClasspath
+    mainClass = 'two.newdawn.terrain.TerrainBenchmark'
+    jvmArgs "-XX:StartFlightRecording=filename=${layout.buildDirectory.get()}/terrain-profile.jfr,settings=profile,dumponexit=true"
+}

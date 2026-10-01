@@ -3,12 +3,15 @@ package two.newdawn.terrain;
 /** Functional mountain-profile contracts and seeded production surveys without fixed visual snapshots. */
 public final class MountainRegressionTest {
     public static void main(String[] args) {
+        boolean extended = args.length == 1 && args[0].equals("--extended");
+        if (args.length > 0 && !extended) throw new IllegalArgumentException("Expected --extended or no arguments");
         verifyProfile();
         verifyBodyAndDetail();
         verifyCliffs();
         verifyCliffTransitions();
-        for (long seed : new long[]{123456789L, -8458999313514431577L}) survey(seed);
-        System.out.println("PASS: substantial mountain bodies, local detail, climate-shaped cliffs and consistent sampling");
+        if (extended) for (long seed : new long[]{123456789L, -8458999313514431577L}) survey(seed);
+        System.out.println("PASS: mountain body, local detail and climate-shaped cliff contracts"
+                + (extended ? "; production coverage and sampling agreement" : ""));
     }
 
     private static void verifyProfile() {

@@ -14,8 +14,8 @@ import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import java.util.Properties;
 
 /** Development-only checks of the actual client default and server preset resolution paths. */
-final class SmokePresetChecks {
-    private SmokePresetChecks() {}
+final class PresetIntegrationChecks {
+    private PresetIntegrationChecks() {}
 
     static void verify(ServerLevel level) {
         var registries = level.registryAccess();

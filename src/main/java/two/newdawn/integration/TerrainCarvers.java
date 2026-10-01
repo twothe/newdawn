@@ -21,6 +21,8 @@ import net.minecraft.world.level.levelgen.carver.CarvingContext;
 import net.minecraft.world.level.levelgen.Beardifier;
 import two.newdawn.terrain.TerrainSampler;
 
+import java.util.function.IntBinaryOperator;
+
 /**
  * Runs registered Minecraft carvers with a terrain-aware ocean boundary. Vanilla's aquifer surface
  * estimate describes its noise terrain, so it must not decide that an existing New Dawn ocean is air.
@@ -41,7 +43,7 @@ final class TerrainCarvers {
         var noise = chunk.getOrCreateNoiseChunk(access -> NoiseChunk.forChunk(access, random,
                 Beardifier.forStructuresInChunk(structures, access.getPos()), settings,
                 (x, y, z) -> y < -54 ? LAVA : WATER, Blender.of(level)));
-        var aquifer = new OceanAquifer(noise.aquifer(), terrain, chunk.getPos());
+        var aquifer = new OceanAquifer(noise.aquifer(), terrain::sampleHeight, chunk.getPos());
         var context = new CarvingContext(generator, level.registryAccess(), chunk.getHeightAccessorForGeneration(),
                 noise, random, settings.surfaceRule());
         var mask = ((ProtoChunk) chunk).getOrCreateCarvingMask(step);
@@ -66,26 +68,40 @@ final class TerrainCarvers {
     /** Invocation-owned wrapper: only the original ocean envelope overrides the normal cave aquifer. */
     static final class OceanAquifer implements Aquifer {
         private final Aquifer delegate;
+        private final IntBinaryOperator terrainHeight;
+        private final int startX, startZ;
+        // Zero means unsampled: the terrain height contract is 1..255.
         private final int[] heights = new int[256];
         private boolean scheduleUpdate;
 
-        OceanAquifer(Aquifer delegate, TerrainSampler terrain, ChunkPos chunk) {
+        /** The height function supplies first-air Y for absolute coordinates; queries belong to this chunk. */
+        OceanAquifer(Aquifer delegate, IntBinaryOperator terrainHeight, ChunkPos chunk) {
             this.delegate = delegate;
-            for (int z = 0; z < 16; z++) for (int x = 0; x < 16; x++) {
-                heights[x + 16 * z] = terrain.sampleHeight(chunk.getMinBlockX() + x, chunk.getMinBlockZ() + z);
-            }
+            this.terrainHeight = terrainHeight;
+            startX = chunk.getMinBlockX();
+            startZ = chunk.getMinBlockZ();
         }
 
         @Override
         public BlockState computeSubstance(DensityFunction.FunctionContext position, double density) {
             int y = position.blockY();
-            if (density <= 0 && y < TerrainSampler.SEA_LEVEL && y >= heights[(position.blockX() & 15) + 16 * (position.blockZ() & 15)]) {
+            if (density <= 0 && y < TerrainSampler.SEA_LEVEL && y >= height(position.blockX(), position.blockZ())) {
                 scheduleUpdate = false;
                 return Blocks.WATER.defaultBlockState();
             }
             BlockState result = delegate.computeSubstance(position, density);
             scheduleUpdate = delegate.shouldScheduleFluidUpdate();
             return result;
+        }
+
+        private int height(int x, int z) {
+            int index = (x & 15) + 16 * (z & 15);
+            int height = heights[index];
+            if (height == 0) {
+                height = terrainHeight.applyAsInt(startX + (x & 15), startZ + (z & 15));
+                heights[index] = height;
+            }
+            return height;
         }
 
         @Override public boolean shouldScheduleFluidUpdate() { return scheduleUpdate; }

@@ -7,22 +7,41 @@ version = mod_version
 group = 'two.newdawn'
 base { archivesName = 'newdawn' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+// Integration fixtures compile against the game but never enter the production source set.
+sourceSets {
+    integrationTest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+configurations {
+    integrationTestImplementation.extendsFrom implementation
+    integrationTestRuntimeOnly.extendsFrom runtimeOnly
+}
 neoForge {
     version = project.neo_version
+    addModdingDependenciesTo sourceSets.integrationTest
+    mods {
+        newdawn { sourceSet sourceSets.main }
+        newdawnIntegration {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.integrationTest
+        }
+    }
     runs {
-        client { client() }
-        server { server(); programArgument '--nogui' }
+        client { client(); loadedMods = [mods.newdawn] }
+        server { server(); programArgument '--nogui'; loadedMods = [mods.newdawn] }
         smokeServer {
             server()
+            sourceSet = sourceSets.integrationTest
+            loadedMods = [mods.newdawnIntegration]
             gameDirectory = file(project.findProperty('smokeDirectory') ?: 'build/smoke-server')
             programArgument '--nogui'
             systemProperty 'newdawn.smokeTest', 'true'
+            if (project.hasProperty('profileGeneration')) {
+                jvmArgument "-XX:StartFlightRecording=filename=${layout.buildDirectory.get()}/server-generation.jfr,settings=profile,dumponexit=true"
+            }
             if (project.hasProperty('benchmarkGeneration')) systemProperty 'newdawn.benchmarkGeneration', 'true'
-        }
-    }
-    mods {
-        newdawn {
-            sourceSet sourceSets.main
         }
     }
 }
@@ -38,7 +57,6 @@ tasks.named('processResources') {
 }
 tasks.named('jar') {
     from project(':terrain-core').sourceSets.main.output
-    exclude 'two/newdawn/integration/Smoke*'
 }
 tasks.named('check') { dependsOn ':terrain-core:check' }
 
@@ -46,8 +64,21 @@ tasks.named('check') { dependsOn ':terrain-core:check' }
 tasks.register('verifyJar') {
     dependsOn tasks.named('jar')
     def archive = tasks.named('jar', Jar).flatMap { it.archiveFile }
+    def releaseVersion = project.version.toString()
     inputs.file archive
+    def developmentSources = [sourceSets.integrationTest, project(':terrain-core').sourceSets.test,
+                              project(':terrain-core').sourceSets.benchmark]
+    inputs.files developmentSources.collect { it.allJava }
     doLast {
+        def developmentClasses = new HashSet<String>()
+        developmentSources.each { sources ->
+            sources.allJava.srcDirs.each { root ->
+                fileTree(root).matching { include '**/*.java' }.files.each { source ->
+                    developmentClasses.add(root.toPath().relativize(source.toPath()).toString()
+                            .replace('\\', '/').replaceAll(/\.java$/, ''))
+                }
+            }
+        }
         new java.util.zip.ZipFile(archive.get().asFile).withCloseable { zip ->
             [
                 'two/newdawn/NewDawn.class',
@@ -63,12 +94,14 @@ tasks.register('verifyJar') {
                 if (zip.getEntry(name) == null) throw new GradleException("Missing release entry: $name")
             }
             zip.entries().each { entry ->
-                if (entry.name.contains('/Smoke') || entry.name.contains('legacy-terrain') || entry.name.endsWith('.java')) {
+                def owner = entry.name.replaceAll(/\.class$/, '').split(/\$/)[0]
+                if (developmentClasses.contains(owner) || entry.name.contains('/Smoke')
+                        || entry.name.contains('legacy-terrain') || entry.name.endsWith('.java')) {
                     throw new GradleException("Development entry leaked into release: ${entry.name}")
                 }
             }
             def metadata = zip.getInputStream(zip.getEntry('META-INF/neoforge.mods.toml')).getText('UTF-8')
-            if (!metadata.contains('version="' + project.version + '"')) throw new GradleException('Unexpanded release version')
+            if (!metadata.contains('version="' + releaseVersion + '"')) throw new GradleException('Unexpanded release version')
         }
         logger.lifecycle('PASS: release jar contains terrain core, world preset and expanded metadata; no development fixtures')
     }

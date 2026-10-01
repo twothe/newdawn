@@ -87,14 +87,21 @@ world. This mod does not convert old 1.7.10 saves.
 ## Verification
 
 ```powershell
-# Build, original-data regression checks and concurrency tests:
+# Build with short contract, concurrency and allocation checks:
 .\tools\verify.ps1 -JavaHome 'C:\Program Files\Java\jdk-21'
 
 # Also generate, save and reload a server world, checking persisted chunk contents:
 .\tools\verify.ps1 -Smoke -JavaHome 'C:\Program Files\Java\jdk-21'
 
+# Optional larger geographic and biome-coverage surveys:
+.\gradlew.bat :terrain-core:extendedCheck
+
 # Standalone terrain benchmark:
 .\gradlew.bat :terrain-core:benchmark
+
+# Isolated component costs or sampled JVM call stacks:
+.\gradlew.bat :terrain-core:componentBenchmark
+.\gradlew.bat :terrain-core:profile
 
 # Also measure CPU time and allocations in the core and Minecraft raw fill:
 .\tools\verify.ps1 -Smoke -Benchmark -JavaHome 'C:\Program Files\Java\jdk-21'
@@ -102,7 +109,9 @@ world. This mod does not convert old 1.7.10 saves.
 
 `-Offline` uses cached build dependencies. The server check binds only to localhost on
 an available port, creates a fresh world under `build/` and shuts itself down.
-Reports and logs remain there. Development checks are excluded from the distributable JAR.
+Reports and logs remain there. `-Smoke` includes the extensive core surveys. Add
+`-Profile` for JFR recordings of core sampling and the first server run; profiling is
+optional and changes timing, so use separate runs for benchmark comparisons. Development checks are excluded from the distributable JAR.
 
 Further reading: [Architecture and limitations](docs/architecture.md),
 [Performance and buffer API](docs/performance.md), [Verification evidence](docs/verification.md),

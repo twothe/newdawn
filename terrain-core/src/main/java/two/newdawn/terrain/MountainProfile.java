@@ -1,18 +1,27 @@
 package two.newdawn.terrain;
 
+import static two.newdawn.terrain.NoiseMath.smooth;
+
 /**
  * Broad mountain bodies with subordinate multifractal ridges and local surface relief.
  * Climate is the broad, uncorrected climate at this coordinate;
  * neither neighboring heights nor the resulting altitude feed back into this profile.
  */
 final class MountainProfile {
+    private static final double DISTRIBUTION_THRESHOLD = 0.01;
+    private static final double HEIGHT_AMPLITUDE = 144.0;
+    private static final double BODY_WEIGHT = 0.60;
+    private static final double BROAD_VARIATION_WEIGHT = 0.15;
+    private static final double RIDGE_WEIGHT = 0.25;
+    private static final double LOCAL_RELIEF = 5.0;
+
     private MountainProfile() {}
 
     /** Retains the legacy distribution and threshold, with a continuous zero-height boundary. */
     static double influence(double noise) {
         if (noise <= 0.0) return 0.0;
         double legacy = -(Math.cos(Math.PI * Math.pow(noise, 4.0)) - 1.0) / 2.0;
-        double influence = Math.max(0.0, (legacy - 0.01) / 0.99);
+        double influence = Math.max(0.0, (legacy - DISTRIBUTION_THRESHOLD) / (1.0 - DISTRIBUTION_THRESHOLD));
         // Broaden substantial relief inside the existing footprint without moving its boundary.
         return influence * (2.0 - influence);
     }
@@ -25,10 +34,13 @@ final class MountainProfile {
     static double height(double influence, double broadVariation, double large, double small,
                          double local, double detail,
                          double temperature, double humidity) {
-        double dry = 1.0 - smooth(-0.45, 0.30, humidity);
-        // Moisture and a cool transition climate favor broken rock; permanent cold is not amplified.
-        double frost = smooth(-0.70, -0.25, temperature) * (1.0 - smooth(-0.15, 0.15, temperature))
-                * smooth(-0.35, 0.35, humidity);
+        return heightFromWeathering(influence, broadVariation, large, small, local, detail,
+                ClimateRules.dryness(humidity), ClimateRules.frostWeathering(temperature, humidity));
+    }
+
+    /** Composition entry point when the caller already evaluated climate weathering. */
+    static double heightFromWeathering(double influence, double broadVariation, double large, double small,
+                                       double local, double detail, double dry, double frost) {
         double ruggedness = 0.55 + dry * 0.30 + frost * 0.15;
         double ridge = 1.0 - Math.abs(large);
         double signal = ridge * ridge;
@@ -40,16 +52,11 @@ final class MountainProfile {
                 + 0.25 * secondary * secondary * feedback;
         // Signed finer noise breaks long ridge contours into summit segments and saddles.
         double summitVariation = 0.55 + 0.45 * smooth(-0.65, 0.65, small);
-        double profile = 0.60 + 0.15 * broadVariation + 0.25 * ridgeProfile * summitVariation;
+        double profile = BODY_WEIGHT + BROAD_VARIATION_WEIGHT * broadVariation + RIDGE_WEIGHT * ridgeProfile * summitVariation;
         // Reused block-scale noise supplies coherent roughness; two-block detail stays subordinate.
-        double surfaceRelief = local * 5.0 + detail * (0.5 + ruggedness * 0.75);
+        double surfaceRelief = local * LOCAL_RELIEF + detail * (0.5 + ruggedness * 0.75);
 
-        return influence * (144.0 * profile + surfaceRelief);
+        return influence * (HEIGHT_AMPLITUDE * profile + surfaceRelief);
     }
 
-    /** Cubic blend with constant endpoints; all profile transitions use bounded arithmetic. */
-    private static double smooth(double lower, double upper, double value) {
-        double t = Math.max(0.0, Math.min(1.0, (value - lower) / (upper - lower)));
-        return t * t * (3.0 - 2.0 * t);
-    }
 }

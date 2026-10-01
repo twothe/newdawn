@@ -2,10 +2,63 @@
 
 ## Components
 
-`terrain-core` is a Java 21 module with no external dependencies. `TerrainSampler` and
-`BiomePalette` contain the generation rules. `TerrainColumn` and `TerrainChunk` are
-reusable, caller-owned output buffers; `TerrainSample` remains available as an immutable
-snapshot. This module compiles without any Minecraft or NeoForge classes.
+`terrain-core` is a Java 21 module with no external dependencies. The components
+are ordinary immutable objects and pure functions, with direct calls rather than a
+configurable pipeline, runtime plugin registry or per-column context allocation.
+
+| Component | Responsibility / tuning location |
+| --- | --- |
+| `TerrainSampler` | Public sampling API and composition of relief, final climate and filler |
+| `TerrainNoise` | Seed-specific noise fields, spatial scales and initialization order |
+| `ClimateRules` | Broad climate, final altitude correction, dryness and frost weathering |
+| `TerrainRelief` | Base height amplitudes, domain warping, mountain/cliff composition and local biome-height variation |
+| `MountainProfile` | Mountain distribution threshold, body/ridge weights, amplitude and detail |
+| `CliffProfile` | Climate activation, face height/width, aprons and fading ends |
+| `NoiseMath` | Shared bounded interpolation |
+| `BiomePalette` | Climate/elevation choices, surface materials and shared vertical precedence |
+
+`TerrainColumn` and `TerrainChunk` are reusable, caller-owned output buffers;
+`TerrainSample` is an immutable convenience snapshot. No component allocates a
+result object per column on the reusable path. The module compiles without Minecraft
+or NeoForge classes.
+
+### Changing or extending generation
+
+Change each rule in its owning component. Principal visual controls are named constants
+next to the formula; small climate decision trees remain readable comparisons. There is
+no universal parameter bag or inheritance hierarchy to update before adding a rule.
+
+For a new overlay, append its field in `TerrainNoise`, compose its pointwise contribution
+in `TerrainRelief`, and give a substantial independent profile its own cohesive component.
+Reuse existing noise values where appropriate. Cheap activation should precede expensive
+noise queries. A rule affecting geometry must participate in both full-column and
+height-only sampling; both already go through the same relief composition. Extend output
+buffers only when a downstream consumer needs the additional value. Shared inputs such
+as dryness and frost are calculated once and passed as primitives.
+
+Broad climate is independent of height. Final biome climate is applied after height has
+been computed. Height-only queries request broad climate lazily inside mountain regions;
+that decision is explicit and independent of whether an output buffer was supplied.
+
+Keep the surface and its top material on the same column selection. Cached game biome
+holders and direct core queries both use `BiomePalette.selectVertical`, so changing
+underground precedence does not require a second implementation in the integration layer.
+
+Visual acceptance belongs in the Minecraft client with the intended modpack. Core tests
+and benchmarks check contracts and cost; they cannot judge the overall landscape or
+third-party decoration. No standalone terrain preview tool is part of this workflow.
+
+### Source boundaries
+
+- `terrain-core/src/main`: production sampling and rules.
+- `terrain-core/src/test`: short contract tests and optional extensive surveys.
+- `terrain-core/src/benchmark`: allocation checks, detailed benchmarks and profiling workloads.
+- `src/main`: Minecraft/NeoForge production integration and resources.
+- `src/integrationTest`: the isolated server test entry point, integration checks and game benchmarks.
+
+The development `smokeServer` run combines main and integration-test sources as one mod;
+normal client/server runs load only main. The release JAR embeds only main plus the
+core main output. Measurements and test event subscribers never enter the release.
 
 `NewDawnBiomeSource` resolves selections to registry-owned vanilla biome holders.
 `NewDawnChunkGenerator` extends the existing `NoiseBasedChunkGenerator` pipeline and
@@ -45,7 +98,9 @@ which one wins. No global generator is replaced at runtime, and no client API is
   original order. Even the filler field affects later climate and mountain fields by
   consuming random numbers during initialization. The dedicated cliff field follows
   these original fields, retaining all existing offsets.
-- Base-terrain scales, offsets, weights and arithmetic order match the original. Rounding,
+- Base-terrain scales, offsets and weights retain their original meaning. Noise scales
+  are converted once to reciprocals, replacing two divisions per field query with
+  multiplication. Floating-point rounding may therefore differ slightly. Rounding,
   height clamping and float conversion are also retained. `BLOCK_SCALE=2` remains
   part of the terrain shape and is deliberately independent of the modern build height.
 - Ground level remains 64: Y=63 is the top water block; a terrain height of 64 means
@@ -95,6 +150,12 @@ random seeds. The unspecified iteration order of `Map.copyOf` could otherwise ch
 decoration after a JVM restart despite an identical world seed. The server check explicitly
 verifies this order. Small differences in complete Minecraft decoration are acceptable
 under the agreed requirements; our terrain and climate core remains deterministic.
+
+The ocean aquifer wrapper owns a 256-entry lazy height cache per carving invocation.
+Construction does not sample terrain. Only non-solid queries below sea level request
+heights, and each requested column is sampled once. Zero is an unsampled sentinel because
+valid terrain heights are 1–255. Underground fluid decisions and update scheduling still
+delegate to Minecraft; the cache is neither shared nor instrumented.
 
 Minecraft manages chunk tasks. The mod does not start another thread pipeline.
 Each task writes only its own chunk. Its primitive chunk buffer is allocated per invocation;

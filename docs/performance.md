@@ -1,6 +1,94 @@
 # Performance and reusable terrain buffers
 
-## Results
+## Measurement workflow
+
+Normal `build`/`check` runs short contracts and a compact allocation/timing check:
+256 chunks or 65,536 queries per trial, including mountain-focused queries. It reports
+one median per workload and fails on per-query allocation regressions, not on elapsed
+time. Broad geographic surveys are explicit through `:terrain-core:extendedCheck`.
+
+Detailed diagnostics are opt-in, entirely outside production sources:
+
+```powershell
+# Full warmed CPU/allocation workloads, including expensive mountain regions:
+.\gradlew.bat :terrain-core:benchmark
+
+# Actual component methods with varying precomputed inputs:
+.\gradlew.bat :terrain-core:componentBenchmark
+
+# Sampled call stacks, allocation sites and GC; creates terrain-core/build/terrain-profile.jfr:
+.\gradlew.bat :terrain-core:profile
+
+# Full core and game benchmarks, fresh generation and restart:
+.\tools\verify.ps1 -Smoke -Benchmark -Offline -JavaHome 'C:\Program Files\Java\jdk-21'
+
+# Optional core and first-server JFR capture (server output: build/server-generation.jfr):
+.\tools\verify.ps1 -Smoke -Profile -Offline -JavaHome 'C:\Program Files\Java\jdk-21'
+
+# JDK 21 can summarize the recording without installing a profiler UI:
+jfr view hot-methods terrain-core/build/terrain-profile.jfr
+jfr view allocation-by-site terrain-core/build/terrain-profile.jfr
+jfr view cpu-load terrain-core/build/terrain-profile.jfr
+```
+
+Component measurements isolate Simplex sampling, four-field broad climate, weathering,
+mountain distribution/body, cliff activation/profile and biome selection. The server
+benchmark separately times biome filling and raw block filling. These isolated costs
+include harness overhead and are **not additive percentages** of full generation:
+activation rates, caches and JIT inlining differ. Use JFR execution stacks to locate
+cost in the complete workload; use its allocation and GC views to distinguish memory
+pressure from computation. JFR is sampled evidence, not an exact timer for each call.
+Its recording includes startup and warmup, so inspect the steady-state interval when
+attributing workload costs. Repeat with the real modpack for end-to-end conclusions.
+
+Profiling itself affects execution. Keep instrumented runs separate from before/after
+CPU comparisons. No production class imports a measurement API or checks a profiling
+flag. The JVM recording is enabled only on the requested development launch.
+Recordings stay in ignored build directories and are replaced by the next matching run.
+
+## Component refactor measurements (2026-10-01)
+
+The final comparison ran the **same saved benchmark class** sequentially against the
+pre-refactor and final core on Java 21, with the same seeds, coordinates, warmup and
+trial counts. The original sampling APIs remain available. Three-trial medians:
+
+| Operation | Before | After | Reused output allocation |
+| --- | ---: | ---: | ---: |
+| Reused chunk buffer | 70.189 µs/chunk | 66.655 µs/chunk | 0 B/op |
+| Height only, mixed terrain | 0.157 µs/query | 0.149 µs/query | 0 B/op |
+| Full column, mixed terrain | 0.286 µs/query | 0.274 µs/query | 0 B/op |
+| Full column plus biome | 0.295 µs/query | 0.311 µs/query | 0 B/op |
+| Height only, strong mountains | 0.385 µs/query | 0.397 µs/query | 0 B/op |
+| Full column, strong mountains | 0.491 µs/query | 0.452 µs/query | 0 B/op |
+
+An earlier version of the split showed increased sampling cost. A separate JFR run
+attributed most sampled execution to Simplex and field-coordinate scaling; it also
+reported 71–83% machine CPU load. Preparing reciprocal noise scales once removed two
+divisions per field query. The shared climate component avoids calculating dryness
+and frost twice when mountains and cliffs are active. Both remain ordinary editable
+rules, without measurement branches or special generated code in production.
+
+Timing is noisy on this host. The full verification's final core run measured
+66.011 µs/chunk, 0.149 µs/mixed height, 0.270 µs/full column,
+0.361 µs/mountain height and 0.451 µs/mountain column. The paired biome and mountain-height
+results above are slightly slower, while the latter is faster in the other final run;
+these measurements do not justify claiming every path improved or a precise global
+speedup. All reusable API allocation budgets passed at 0 B/op.
+
+Uninstrumented raw-fill medians were 0.239/0.272 ms per chunk before and
+0.253/0.281 ms after (fresh/reloaded server); output allocation remained approximately
+15.4/15.5 KB per chunk. This workload does not measure the lazy aquifer improvement:
+the aquifer contract check proves zero eager sampling and one height evaluation per
+actually queried column. Biome fill is now measured separately (0.042/0.048 ms per
+chunk in the final runs). No end-to-end modpack speedup is inferred from these stages.
+
+Local evidence: `build/architecture-final-paired-before.log`,
+`build/architecture-final-paired-after.log`, `build/architecture-final.log`,
+`build/architecture-profile.log` and `build/architecture-server-profile.log`.
+The pre-refactor comparison classes and temporary geometry checks are local ignored
+artifacts, not permanent compatibility fixtures or build gates.
+
+## Initial buffer optimization results
 
 Measured on September 30, 2026 on the local Windows machine with Oracle JDK 21.0.2
 and NeoForge 21.1.250. Values are medians of three measurements following three warmup
@@ -207,7 +295,7 @@ Fixed wall-clock limits are not build gates because machine load and JIT behavio
 .\tools\verify.ps1 -Smoke -Benchmark -Offline -JavaHome 'C:\Program Files\Java\jdk-21'
 ```
 
-Without `-Smoke`, `-Benchmark` measures only the core. Omitting `-Offline` allows missing
+Without `-Smoke`, `-Benchmark` measures only core workloads and components. Omitting `-Offline` allows missing
 build dependencies to be downloaded. Normal builds already include the smaller allocation
 regression check; timing measurements deliberately have no fixed pass/fail threshold.
 
@@ -223,8 +311,8 @@ exercise height-only and full-column mountain paths before and after profile cha
 The allocation check includes both paths. A distribution change requires reviewing
 coordinate comparability; profile and cliff changes preserve this workload.
 
-Each Minecraft measurement fills 256 fresh ProtoChunks. Construction and biome setup
-happen before timing starts. The measurement covers synchronous raw fill, including
+Each Minecraft measurement fills 256 fresh ProtoChunks. Construction stays outside both timers. Biome setup is measured separately before
+the raw-fill timer starts. The measurement covers synchronous raw fill, including
 output buffers, palettes and heightmaps. It excludes caves, decoration, structures,
 lighting, saving and networking. It therefore **does not imply twice the overall world
 generation speed or client FPS**. JIT compilation, GC and machine load affect the results;

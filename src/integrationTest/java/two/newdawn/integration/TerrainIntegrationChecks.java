@@ -19,8 +19,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 
 /** Development-only layer boundaries, clipped heights and concurrent raw-fill checks. */
-final class SmokeTerrainChecks {
-    private SmokeTerrainChecks() {}
+final class TerrainIntegrationChecks {
+    private TerrainIntegrationChecks() {}
 
     static void run(ServerLevel level, NewDawnChunkGenerator generator) throws Exception {
         verifyLayers();

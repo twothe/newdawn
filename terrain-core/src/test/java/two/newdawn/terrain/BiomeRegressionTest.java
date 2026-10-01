@@ -70,13 +70,16 @@ public final class BiomeRegressionTest {
         expect("deep_ocean", 10, 0.2f, 0.7f, 0, false, -9);
         expect("lush_caves", 10, 0.2f, 0.7f, 0, false, -10);
 
+        boolean extended = arguments.length == 1 && arguments[0].equals("--extended");
+        if (arguments.length > 0 && !extended) throw new IllegalArgumentException("Expected --extended or no arguments");
+        int radius = extended ? 256 : 24;
         Map<String, Integer> surfaceCounts = new TreeMap<>();
         Set<String> reached = new HashSet<>();
         TerrainColumn column = new TerrainColumn();
         float minimumOffset = 0, maximumOffset = 0;
         for (long seed : new long[]{0, 1, 123456789, -8458999313514431577L}) {
             TerrainSampler sampler = new TerrainSampler(seed);
-            for (int z = -256; z < 256; z++) for (int x = -256; x < 256; x++) {
+            for (int z = -radius; z < radius; z++) for (int x = -radius; x < radius; x++) {
                 sampler.sampleInto(x * 96 + 17, z * 96 - 31, column);
                 require(column.biomeHeightOffset() >= -6 && column.biomeHeightOffset() <= 6,
                         "Biome height offset exceeded its six-block bound");
@@ -92,9 +95,10 @@ public final class BiomeRegressionTest {
         }
         Set<String> missing = new java.util.TreeSet<>(EXPECTED);
         missing.removeAll(reached);
-        require(missing.isEmpty(), "Biomes unreachable in production noise survey: " + missing);
+        require(!extended || missing.isEmpty(), "Biomes unreachable in production noise survey: " + missing);
         require(minimumOffset < -2 && maximumOffset > 2, "Biome height noise lacks useful variation");
-        System.out.println("PASS: all 51 non-river biomes reached across 1048576 production columns; climate/depth boundaries; surfaceCounts=" + surfaceCounts);
+        if (extended) System.out.println("PASS: all 51 non-river biomes reached across 1048576 production columns; climate/depth boundaries; surfaceCounts=" + surfaceCounts);
+        else System.out.println("PASS: climate/depth boundaries and 9216 production columns; use extendedCheck for all-biome reachability");
     }
 
     private static void expect(String biome, int height, float temperature, float humidity, int region, boolean mountain, int y) {

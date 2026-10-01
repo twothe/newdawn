@@ -11,6 +11,9 @@
 - Keep `terrain-core` independent of Minecraft, NeoForge and mutable global state. Minecraft integration belongs in the main project.
 - Use caller-owned terrain buffers in hot paths. Never share mutable buffers across concurrent or reentrant generation calls. See `docs/performance.md` for benchmarks and ownership contracts.
 - For generation changes, capture warmed CPU and allocation benchmarks before and after with identical seeds, coordinates and JVM settings. Include mountain-focused queries as well as mixed terrain; investigate material regressions before completion. Use the server raw-fill benchmark when generation integration is affected.
+- Keep production sources free of test entry points, timing and allocation instrumentation. Core tests live in `terrain-core/src/test`, opt-in benchmarks in `terrain-core/src/benchmark`, and game checks in `src/integrationTest`.
+- Normal builds run short contract/allocation checks. Use `:terrain-core:extendedCheck` for broad surveys and `tools/verify.ps1 -Smoke -Benchmark` for integration/performance verification. Judge visual quality in the Minecraft client with the intended modpack; do not build a standalone terrain viewer.
+- Keep generation components directly composable and easy to edit. Put tuning controls next to the rules they govern; avoid rigid stage frameworks or speculative extension layers.
 - Use Java 21. Run `./gradlew :terrain-core:check build` and the dedicated server smoke check for generation/lifecycle changes.
 - Do not modify the original Forge project. Do not introduce per-version adapter hierarchies or reflection for speculative compatibility.
 
