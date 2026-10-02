@@ -40,6 +40,13 @@ tasks.register('mountainTest', JavaExec) {
 }
 tasks.named('check') { dependsOn mountainTest }
 
+tasks.register('climateTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'two.newdawn.terrain.ClimateRegressionTest'
+}
+tasks.named('check') { dependsOn climateTest }
+
 // Large geographic surveys are explicit, rather than part of every edit/build cycle.
 ['Terrain', 'Biome', 'Mountain'].each { suite ->
     tasks.register("${suite.toLowerCase()}ExtendedTest", JavaExec) {

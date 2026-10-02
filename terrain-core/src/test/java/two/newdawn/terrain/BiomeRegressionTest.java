@@ -27,25 +27,52 @@ public final class BiomeRegressionTest {
         expect("lukewarm_ocean", 60, 0.25f, 0, 0, false, 63);
         expect("deep_lukewarm_ocean", 59, 0.25f, 0, 0, false, 63);
         expect("warm_ocean", 40, 0.55f, 0, 0, false, 63);
-        expect("snowy_beach", 63, -0.5f, 0, 0, false, 64);
+        expect("snowy_beach", 63, -0.55f, 0, 0, false, 64);
         expect("mangrove_swamp", 66, 0.5f, 0.7f, 0, false, 66);
         expect("mushroom_fields", 70, 0.1f, 0.7f, -8, false, 70);
         expect("cherry_grove", 85, 0.2f, 0.3f, 0, true, 85);
-        // Rare cherry window: inclusive lower bounds, exclusive upper bounds, meadow outside.
+        // Rare cherry window: inclusive lower bounds, exclusive upper bounds, climate-compatible neighbors.
         expect("cherry_grove", 85, 0.15f, 0.25f, 0, true, 85);
         expect("cherry_grove", 85, Math.nextDown(0.25f), Math.nextDown(0.40f), 0, true, 85);
-        expect("meadow", 85, Math.nextDown(0.15f), 0.3f, 0, true, 85);
-        expect("meadow", 85, 0.25f, 0.3f, 0, true, 85);
-        expect("meadow", 85, 0.2f, Math.nextDown(0.25f), 0, true, 85);
-        expect("meadow", 85, 0.2f, 0.40f, 0, true, 85);
+        expect("birch_forest", 85, Math.nextDown(0.15f), 0.3f, 0, true, 85);
+        expect("savanna", 85, 0.25f, 0.3f, 0, true, 85);
+        expect("birch_forest", 85, 0.2f, Math.nextDown(0.25f), 0, true, 85);
+        expect("old_growth_birch_forest", 85, 0.2f, 0.40f, 0, true, 85);
         expect("cherry_grove", 76, 0.2f, 0.3f, 0, true, 76);
         expect("cherry_grove", 82, 0.2f, 0.3f, 0, false, 82);
-        expect("old_growth_birch_forest", 75, 0.2f, 0.3f, 0, true, 75);
-        expect("old_growth_birch_forest", 81, 0.2f, 0.3f, 0, false, 81);
+        expect("birch_forest", 75, 0.2f, 0.3f, 0, true, 75);
+        expect("birch_forest", 81, 0.2f, 0.3f, 0, false, 81);
         expect("cherry_grove", 103, 0.2f, 0.3f, 0, true, 103);
         expect("cherry_grove", 104, 0.2f, 0.3f, 0, true, 104);
-        expect("meadow", 106, -0.13565119f, -0.38147548f, 7, false, 106);
-        expect("meadow", 150, 0.1f, 0.3f, 0, false, 150);
+        expect("plains", 106, -0.13f, -0.38f, 7, false, 106);
+        expect("birch_forest", 150, 0.1f, 0.3f, 0, false, 150);
+        expect("meadow", 100, 0.0f, 0.0f, 0, false, 100);
+        expect("forest", 100, 0.0f, 0.5f, 0, false, 100);
+        expect("birch_forest", 75, -0.2f, 0.0f, 0, false, 75);
+        expect("taiga", 75, -0.3f, 0.0f, 0, false, 75);
+        expect("taiga", 75, Math.nextDown(-0.22f), 0.0f, 0, false, 75);
+        expect("birch_forest", 75, -0.22f, 0.0f, 0, false, 75);
+        expect("birch_forest", 75, Math.nextDown(0.22f), 0.3f, 0, false, 75);
+        expect("savanna", 75, 0.22f, 0.3f, 0, false, 75);
+        expect("savanna", 75, 0.3f, -0.2f, 0, false, 75);
+        expect("savanna", 75, 0.3f, -0.1f, 0, false, 75);
+        require(!BiomePalette.allowsSavannaTrees(Math.nextDown(-0.10f)), "Dry Savanna must be treeless");
+        require(BiomePalette.allowsSavannaTrees(-0.10f), "Moderately humid Savanna lost Vanilla trees");
+        expect("savanna", 75, 0.3f, Math.nextDown(0.40f), 0, false, 75);
+        expect("jungle", 75, 0.3f, 0.40f, 0, false, 75);
+        expect("jungle", 75, 0.3f, 0.5f, 0, false, 75);
+        expect("jungle", 100, 0.7f, 0.5f, 0, false, 100);
+        expect("desert", 75, 0.6f, -0.3f, 0, false, 75);
+        expect("savanna", 75, Math.nextDown(0.6f), -0.3f, 0, false, 75);
+        expect("savanna_plateau", 100, 0.3f, -0.2f, 0, false, 100);
+        expect("windswept_savanna", 100, 0.3f, -0.2f, 0, true, 100);
+        expect("badlands", 100, 0.7f, -0.3f, 0, false, 100);
+        expect("wooded_badlands", 100, 0.7f, -0.2f, 0, false, 100);
+        expect("plains", 75, 0.0f, -0.11f, 0, false, 75);
+        expect("flower_forest", 75, 0.0f, -0.10f, 0, false, 75);
+        expect("birch_forest", 75, 0.0f, -0.05f, 0, false, 75);
+        expect("snowy_plains", 75, -0.55f, 0.0f, 0, false, 75);
+        expect("taiga", 75, Math.nextUp(-0.55f), 0.0f, 0, false, 75);
         expect("taiga", 106, -0.3f, 0.0f, 0, false, 106);
         expect("snowy_slopes", 127, -0.3f, 0.3f, 0, true, 127);
         expect("grove", 85, -0.3f, 0.3f, 0, true, 85);
@@ -57,7 +84,7 @@ public final class BiomeRegressionTest {
         expectOffset("frozen_peaks", 127, 6, -0.3f, -0.3f, true);
         expectOffset("grove", 91, -6, -0.3f, 0.3f, true);
         expectOffset("snowy_slopes", 91, 6, -0.3f, 0.3f, true);
-        expectOffset("old_growth_birch_forest", 81, -6, 0.2f, 0.3f, false);
+        expectOffset("birch_forest", 81, -6, 0.2f, 0.3f, false);
         expectOffset("cherry_grove", 81, 6, 0.2f, 0.3f, false);
         // Coastlines and water must continue to use the physical terrain height.
         expectOffset("beach", 64, 6, 0.2f, 0.3f, false);
@@ -95,9 +122,10 @@ public final class BiomeRegressionTest {
         }
         Set<String> missing = new java.util.TreeSet<>(EXPECTED);
         missing.removeAll(reached);
+        missing.remove("sparse_jungle"); // Retained as possible for saved chunks, intentionally not selected on new surfaces.
         require(!extended || missing.isEmpty(), "Biomes unreachable in production noise survey: " + missing);
         require(minimumOffset < -2 && maximumOffset > 2, "Biome height noise lacks useful variation");
-        if (extended) System.out.println("PASS: all 51 non-river biomes reached across 1048576 production columns; climate/depth boundaries; surfaceCounts=" + surfaceCounts);
+        if (extended) System.out.println("PASS: all 50 selected non-river biomes reached across 1048576 production columns; climate/depth boundaries; surfaceCounts=" + surfaceCounts);
         else System.out.println("PASS: climate/depth boundaries and 9216 production columns; use extendedCheck for all-biome reachability");
     }
 

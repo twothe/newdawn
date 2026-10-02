@@ -18,6 +18,13 @@ public final class BiomePalette {
     private static final int DEEP_DARK_MINIMUM_SURFACE = 92;
     private static final int CAVE_ROOF_THICKNESS = 20;
     private static final int MAXIMUM_CAVE_CEILING = 40;
+    // Selection climate is dimensionless. Tune against actual game biome values, not noise amplitude alone.
+    private static final float COLD_TEMPERATURE = -0.55f;
+    private static final float COOL_TEMPERATURE = -0.22f;
+    private static final float WARM_TEMPERATURE = 0.22f;
+    private static final float HOT_TEMPERATURE = 0.60f;
+    private static final float WARM_WOODLAND_HUMIDITY = -0.10f;
+    private static final float JUNGLE_HUMIDITY = 0.40f;
 
     private enum Choice {
         PLAINS, SUNFLOWER_PLAINS, SNOWY_PLAINS,
@@ -28,6 +35,7 @@ public final class BiomePalette {
         TAIGA, SNOWY_TAIGA, SAVANNA, SAVANNA_PLATEAU,
         WINDSWEPT_HILLS(Material.STONE, Material.STONE), WINDSWEPT_GRAVELLY_HILLS(Material.GRAVEL, Material.STONE),
         WINDSWEPT_FOREST, WINDSWEPT_SAVANNA,
+        // Sparse Jungle remains possible for saved chunks and stable feature encounter indices.
         JUNGLE, SPARSE_JUNGLE, BAMBOO_JUNGLE,
         BADLANDS(Material.RED_SAND, Material.TERRACOTTA), ERODED_BADLANDS(Material.RED_SAND, Material.TERRACOTTA),
         WOODED_BADLANDS(Material.GRASS, Material.TERRACOTTA),
@@ -97,6 +105,9 @@ public final class BiomePalette {
     public static Entry deepDark() { return Choice.DEEP_DARK.entry; }
     public static Set<String> biomeIds() { return BIOMES; }
 
+    /** Dry Savanna Plains and wooded Vanilla Savanna share a registry identity and differ only in placement. */
+    public static boolean allowsSavannaTrees(float humidity) { return humidity >= WARM_WOODLAND_HUMIDITY; }
+
     private static Choice surface(int height, float biomeHeightOffset, int regionHeight,
                                   boolean mountain, float temperature, float humidity) {
         float uplandHeight = height + biomeHeightOffset;
@@ -106,9 +117,9 @@ public final class BiomePalette {
             return Choice.MUSHROOM_FIELDS;
         }
         if (height >= 64 && height <= 68 && humidity >= 0.55f && temperature > -0.15f) {
-            return temperature >= 0.4f ? Choice.MANGROVE_SWAMP : Choice.SWAMP;
+            return temperature >= WARM_TEMPERATURE ? Choice.MANGROVE_SWAMP : Choice.SWAMP;
         }
-        if (height <= TerrainSampler.SEA_LEVEL) return temperature <= -0.5f ? Choice.SNOWY_BEACH : Choice.BEACH;
+        if (height <= TerrainSampler.SEA_LEVEL) return temperature <= COLD_TEMPERATURE ? Choice.SNOWY_BEACH : Choice.BEACH;
         if (height <= 68 && mountain) return Choice.STONY_SHORE;
         if (mountain && uplandHeight >= PEAK_HEIGHT) {
             if (temperature >= 0.1f) return Choice.STONY_PEAKS;
@@ -121,6 +132,7 @@ public final class BiomePalette {
 
     private static Choice ocean(int height, float temperature) {
         boolean deep = height < 60;
+        // Oceans retain their independently tuned thermal progression.
         if (temperature <= -0.5f) return deep ? Choice.DEEP_FROZEN_OCEAN : Choice.FROZEN_OCEAN;
         if (temperature < -0.2f) return deep ? Choice.DEEP_COLD_OCEAN : Choice.COLD_OCEAN;
         if (temperature < 0.25f) return deep ? Choice.DEEP_OCEAN : Choice.OCEAN;
@@ -134,39 +146,44 @@ public final class BiomePalette {
             if (uplandHeight >= SNOWY_SLOPE_HEIGHT || humidity < 0.1f) return Choice.SNOWY_SLOPES;
             return Choice.GROVE;
         }
-        if (temperature >= 0.55f) {
+        // The narrow destination takes precedence over the adjoining warm transition.
+        if (temperature >= 0.15f && temperature < 0.25f && humidity >= 0.25f && humidity < 0.40f) return Choice.CHERRY_GROVE;
+        if (temperature >= HOT_TEMPERATURE) {
             if (humidity < -0.25f) return humidity < -0.6f ? Choice.ERODED_BADLANDS : Choice.BADLANDS;
-            if (humidity < 0.1f) return Choice.WOODED_BADLANDS;
-            return humidity < 0.4f ? Choice.WINDSWEPT_SAVANNA : Choice.SAVANNA_PLATEAU;
+            if (humidity < WARM_WOODLAND_HUMIDITY) return Choice.WOODED_BADLANDS;
         }
+        if (temperature >= WARM_TEMPERATURE) {
+            if (humidity < WARM_WOODLAND_HUMIDITY) return mountain ? Choice.WINDSWEPT_SAVANNA : Choice.SAVANNA_PLATEAU;
+            return lowland(temperature, humidity);
+        }
+        // Dry uplands expose rock; ordinary humid hills retain climate-compatible forests.
         if (humidity < -0.85f) return Choice.WINDSWEPT_GRAVELLY_HILLS;
         if (humidity < -0.45f) return Choice.WINDSWEPT_HILLS;
-        if (humidity > 0.65f) return Choice.WINDSWEPT_FOREST;
-        if (temperature >= 0.15f && temperature < 0.25f && humidity >= 0.25f && humidity < 0.40f) return Choice.CHERRY_GROVE;
-        return Choice.MEADOW;
+        if (mountain && humidity > 0.65f) return Choice.WINDSWEPT_FOREST;
+        if (temperature >= -0.10f && temperature < 0.15f && humidity >= -0.15f && humidity < 0.20f) return Choice.MEADOW;
+        return lowland(temperature, humidity);
     }
 
     private static Choice lowland(float temperature, float humidity) {
-        if (temperature <= -0.5f) {
+        if (temperature <= COLD_TEMPERATURE) {
             if (humidity < -0.55f) return Choice.ICE_SPIKES;
             return humidity < 0.1f ? Choice.SNOWY_PLAINS : Choice.SNOWY_TAIGA;
         }
-        if (temperature < -0.15f) {
+        if (temperature < COOL_TEMPERATURE) {
             if (humidity < -0.4f) return Choice.PLAINS;
             if (humidity < 0.2f) return Choice.TAIGA;
             return humidity < 0.5f ? Choice.OLD_GROWTH_PINE_TAIGA : Choice.OLD_GROWTH_SPRUCE_TAIGA;
         }
-        if (temperature < 0.4f) {
+        if (temperature < WARM_TEMPERATURE) {
             if (humidity < -0.45f) return Choice.SUNFLOWER_PLAINS;
-            if (humidity < -0.15f) return Choice.PLAINS;
-            if (humidity < 0.0f) return Choice.FLOWER_FOREST;
-            if (humidity < 0.2f) return Choice.BIRCH_FOREST;
-            if (humidity < 0.35f) return Choice.OLD_GROWTH_BIRCH_FOREST;
-            return humidity < 0.65f ? Choice.FOREST : Choice.DARK_FOREST;
+            if (humidity < -0.10f) return Choice.PLAINS;
+            if (humidity < -0.05f) return Choice.FLOWER_FOREST;
+            if (humidity < 0.35f) return Choice.BIRCH_FOREST;
+            if (humidity < 0.50f) return Choice.OLD_GROWTH_BIRCH_FOREST;
+            return humidity < 0.70f ? Choice.FOREST : Choice.DARK_FOREST;
         }
-        if (temperature >= 0.65f && humidity < -0.2f) return Choice.DESERT;
-        if (humidity < 0.15f) return Choice.SAVANNA;
-        if (humidity < 0.4f) return Choice.SPARSE_JUNGLE;
+        if (temperature >= HOT_TEMPERATURE && humidity < -0.2f) return Choice.DESERT;
+        if (humidity < JUNGLE_HUMIDITY) return Choice.SAVANNA;
         return humidity < 0.65f ? Choice.JUNGLE : Choice.BAMBOO_JUNGLE;
     }
 }

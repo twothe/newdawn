@@ -57,7 +57,7 @@ public final class TerrainRegressionTest {
         require(!sampler.sample(100, 100).equals(samplers.get(1L).sample(100, 100)), "World seed was ignored");
         TerrainSample threshold = new TerrainSample(64, 0, false, -0.5f, 0.18f, 3);
         require(threshold.temperatureBand() == 0 && threshold.humidityBand() == 2, "Inclusive climate thresholds changed");
-        require(BiomePalette.select(threshold).biome().equals("snowy_beach"), "Shore precedence changed");
+        require(BiomePalette.select(new TerrainSample(64, 0, false, -0.55f, 0.18f, 3)).biome().equals("snowy_beach"), "Shore precedence changed");
         require(BiomePalette.select(new TerrainSample(63, 0, true, 0f, 0f, 3)).biome().equals("beach"), "Submerged mountain masks shore");
         require(BiomePalette.select(new TerrainSample(59, 0, false, 0f, 0f, 3)).biome().equals("deep_ocean"), "Ocean threshold changed");
         try {

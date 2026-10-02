@@ -36,6 +36,10 @@ public final class ServerIntegrationTest {
         var server = event.getServer();
         try {
             ServerLevel level = server.overworld();
+            if (Boolean.getBoolean("newdawn.climateSurvey")) {
+                BiomeClimateSurvey.run(level);
+                return;
+            }
             PresetIntegrationChecks.verify(level);
             level.getGameRules().getRule(GameRules.RULE_RANDOMTICKING).set(0, server);
             require(level.getChunkSource().getGenerator() instanceof NewDawnChunkGenerator, "World preset did not select New Dawn");
@@ -43,6 +47,7 @@ public final class ServerIntegrationTest {
             var source = (NewDawnBiomeSource) generator.getBiomeSource();
             WaterIntegrationChecks.verify(level, source.terrain());
             TerrainIntegrationChecks.run(level, generator);
+            TreeDecorationChecks.verify(level, generator);
             if (Boolean.getBoolean("newdawn.benchmarkGeneration")) GenerationBenchmark.run(level, generator);
             require(source.terrain().seed() == level.getSeed(), "World seed was not bound");
             var biomeOrder = source.possibleBiomes().stream().map(biome -> biome.unwrapKey().orElseThrow().location().toString()).toList();

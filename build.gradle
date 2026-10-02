@@ -38,6 +38,12 @@ neoForge {
             gameDirectory = file(project.findProperty('smokeDirectory') ?: 'build/smoke-server')
             programArgument '--nogui'
             systemProperty 'newdawn.smokeTest', 'true'
+            if (project.hasProperty('decorationBaseline')) systemProperty 'newdawn.decorationBaseline', 'true'
+            if (project.hasProperty('climateSurvey')) {
+                systemProperty 'newdawn.climateSurvey', 'true'
+                systemProperty 'newdawn.climateSurveyOutput', layout.buildDirectory.file('biome-climate-survey.json').get().asFile.absolutePath
+                if (project.hasProperty('climateAccess')) systemProperty 'newdawn.climateAccess', 'true'
+            }
             if (project.hasProperty('profileGeneration')) {
                 jvmArgument "-XX:StartFlightRecording=filename=${layout.buildDirectory.get()}/server-generation.jfr,settings=profile,dumponexit=true"
             }

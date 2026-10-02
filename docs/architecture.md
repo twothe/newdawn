@@ -68,7 +68,9 @@ from its associated noise settings. Carvers, structures, features and mob genera
 remain in the existing pipeline. The carver integration additionally supplies a water
 boundary based on our terrain; see [biomes.md](biomes.md).
 
-Only `NewDawn` registers codecs through NeoForge. There are no mixins, reflection,
+`NewDawn` registers codecs through NeoForge. `TreePatchBiomeModifier` uses the loader's
+biome modification lifecycle to append a generator-scoped tree placement filter while
+retaining Vanilla biome identity; see [biomes.md](biomes.md). There are no mixins, reflection,
 access transformers, global world cache or hierarchy of version adapters.
 
 ## Default world type and vanilla selection
@@ -105,8 +107,12 @@ which one wins. No global generator is replaced at runtime, and no client API is
   part of the terrain shape and is deliberately independent of the modern build height.
 - Ground level remains 64: Y=63 is the top water block; a terrain height of 64 means
   the first free block above solid ground at Y=63.
-- Temperature and humidity fields, including forest patches and altitude correction through height 128,
-  are preserved. Above 128 the correction continues linearly to suit taller mountains. Biome selection now covers all 51 non-river overworld biomes; climate,
+- Broad temperature and humidity fields and the one-sided forest patch rule are
+  preserved. Final biome temperature uses smoothly starting altitude cooling above
+  Y=80; humidity no longer receives a generic altitude correction. Surface selection
+  balances access to cool and warm climates while retaining wooded patches and rare
+  destinations. All 50 currently selected non-river overworld biomes remain reachable; Sparse Jungle
+  remains in the possible-biome set for saved chunks and feature ordering; climate,
   elevation and depth rules are documented in [biomes.md](biomes.md).
 - Mountain distribution uses the existing field and threshold, with the user-tuned
   1.8 scale multiplier. Its height profile combines a broad body, subordinate coupled
@@ -138,8 +144,9 @@ local climate and filler calculations; inside mountain regions it evaluates the 
 broad climate fields needed by the pointwise mountain profile. Full sampling reuses
 those climate values without additional noise queries. The previous snapshot methods
 remain available.
-Altitude-dependent climate corrections are precomputed once for all 255 possible heights
-using the original formula through 128 and a linear continuation above it. The BiomeSource maintains a cache of at most 256 entries per
+Altitude-dependent temperature cooling is precomputed once for all 255 possible heights.
+Its rational curve has a smooth onset and approaches a linear gradient, with no per-query
+division or exponentiation. The BiomeSource maintains a cache of at most 256 entries per
 worker, using full coordinate keys; collisions cannot change results. This avoids repeated
 climate calculations for vertical biome quarts and samples only the requested column for
 isolated carver queries. Cache misses use a worker-owned `TerrainColumn`.
@@ -154,7 +161,7 @@ under the agreed requirements; our terrain and climate core remains deterministi
 The ocean aquifer wrapper owns a 256-entry lazy height cache per carving invocation.
 Construction does not sample terrain. Only non-solid queries below sea level request
 heights, and each requested column is sampled once. Zero is an unsampled sentinel because
-valid terrain heights are 1–255. Underground fluid decisions and update scheduling still
+valid terrain heights are 1â€“255. Underground fluid decisions and update scheduling still
 delegate to Minecraft; the cache is neither shared nor instrumented.
 
 Minecraft manages chunk tasks. The mod does not start another thread pipeline.

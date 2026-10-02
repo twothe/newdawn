@@ -25,16 +25,29 @@ tasks.named('build') {
         def source = releaseArchive.get().asFile.toPath()
         def target = directory.toPath().resolve(source.fileName)
         def staged = null
+        IOException installFailure = null
+        String operation = 'create the staging file'
         try {
             // Stage beside the destination so a failed copy never truncates the installed JAR.
             staged = Files.createTempFile(directory.toPath(), '.newdawn-', '.tmp')
+            operation = 'copy the build archive to the staging file'
             Files.copy(source, staged, StandardCopyOption.REPLACE_EXISTING)
+            operation = 'replace the installed archive'
             Files.move(staged, target, StandardCopyOption.REPLACE_EXISTING)
             logger.lifecycle('Copied test mod: {}', target)
         } catch (IOException failure) {
-            throw new GradleException('Could not install the test mod. Close Minecraft if it locks the JAR, and check destination write access.', failure)
+            installFailure = failure
+            throw new GradleException("Could not ${operation} for test mod '${target}'. "
+                    + "${failure.class.simpleName}: ${failure.message}. Build archive: '${source}'.", failure)
         } finally {
-            if (staged != null) Files.deleteIfExists(staged)
+            if (staged != null) {
+                try {
+                    Files.deleteIfExists(staged)
+                } catch (IOException cleanupFailure) {
+                    if (installFailure != null) installFailure.addSuppressed(cleanupFailure)
+                    logger.warn('Could not remove test mod staging file {}: {}', staged, cleanupFailure.message)
+                }
+            }
         }
     }
 }

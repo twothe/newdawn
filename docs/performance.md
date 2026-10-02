@@ -46,6 +46,53 @@ CPU comparisons. No production class imports a measurement API or checks a profi
 flag. The JVM recording is enabled only on the requested development launch.
 Recordings stay in ignored build directories and are replaced by the next matching run.
 
+## Climate rebalancing measurements (2026-10-01)
+
+The existing warmed benchmarks ran before and after the climate/palette change,
+with Java 21, seed 123456789, the same coordinates and three-trial medians. No new
+noise fields, queries or output-buffer fields were added. Cooling remains a table
+lookup; the forest overlay retains its positive increment and trigger.
+
+| Reused workload | Before | After | Allocation |
+| --- | ---: | ---: | ---: |
+| Chunk buffer | 70.231 us/chunk | 66.748 us/chunk | 0 B/op |
+| Mixed height | 0.173 us/query | 0.149 us/query | 0 B/op |
+| Mixed column | 0.314 us/query | 0.275 us/query | 0 B/op |
+| Column plus biome | 0.289 us/query | 0.285 us/query | 0 B/op |
+| Mountain height | 0.361 us/query | 0.365 us/query | 0 B/op |
+| Mountain column | 0.469 us/query | 0.451 us/query | 0 B/op |
+
+No material CPU regression appeared. Several unchanged or lightly changed paths
+also appear faster, and the before trials varied substantially; these timings do
+not establish a precise speedup. Height checksums match before/after, consistent
+with retaining geometry inputs. The column/biome checksums deliberately change.
+The normal allocation check independently passed for every reused workload.
+
+The old core was preserved under `build/climate-before/source` and compiled into
+separate build output for baseline server measurements without replacing production
+sources. The same reported world seed `-8458999313514431577` was used for fresh and
+reloaded server checks before and after:
+
+| Server stage median | Before | After |
+| --- | ---: | ---: |
+| Fresh biome fill | 0.044 ms/chunk | 0.044 ms/chunk |
+| Fresh raw fill | 0.243 ms/chunk | 0.242 ms/chunk |
+| Reloaded biome fill | 0.045 ms/chunk | 0.044 ms/chunk |
+| Reloaded raw fill | 0.315 ms/chunk | 0.232 ms/chunk |
+
+The baseline reloaded raw-fill trials span 0.229â€“0.324 ms/chunk; final trials span
+0.231â€“0.308. Their spread prevents interpreting the median difference as a stable
+speedup. Fresh raw-fill allocation is approximately 15.4 KB/chunk on both revisions;
+reloaded output is approximately 15.5 KB/chunk. These allocations include Minecraft
+output data, unlike the allocation-free reusable core. End-to-end modpack throughput
+and decoration cost remain outside these measurements.
+
+Evidence: `build/climate-before/benchmark.log`, `build/climate-before/server-fresh.log`,
+`build/climate-before/server-reload.log`, and `build/climate-final-verification.log`.
+The comparison source/classes and temporary Gradle initialization file are ignored
+local measurement artifacts, not permanent compatibility fixtures. Climate and
+woodland-access outcomes are in [climate-distribution.md](climate-distribution.md).
+
 ## Component refactor measurements (2026-10-01)
 
 The final comparison ran the **same saved benchmark class** sequentially against the
@@ -54,23 +101,23 @@ trial counts. The original sampling APIs remain available. Three-trial medians:
 
 | Operation | Before | After | Reused output allocation |
 | --- | ---: | ---: | ---: |
-| Reused chunk buffer | 70.189 µs/chunk | 66.655 µs/chunk | 0 B/op |
-| Height only, mixed terrain | 0.157 µs/query | 0.149 µs/query | 0 B/op |
-| Full column, mixed terrain | 0.286 µs/query | 0.274 µs/query | 0 B/op |
-| Full column plus biome | 0.295 µs/query | 0.311 µs/query | 0 B/op |
-| Height only, strong mountains | 0.385 µs/query | 0.397 µs/query | 0 B/op |
-| Full column, strong mountains | 0.491 µs/query | 0.452 µs/query | 0 B/op |
+| Reused chunk buffer | 70.189 Âµs/chunk | 66.655 Âµs/chunk | 0 B/op |
+| Height only, mixed terrain | 0.157 Âµs/query | 0.149 Âµs/query | 0 B/op |
+| Full column, mixed terrain | 0.286 Âµs/query | 0.274 Âµs/query | 0 B/op |
+| Full column plus biome | 0.295 Âµs/query | 0.311 Âµs/query | 0 B/op |
+| Height only, strong mountains | 0.385 Âµs/query | 0.397 Âµs/query | 0 B/op |
+| Full column, strong mountains | 0.491 Âµs/query | 0.452 Âµs/query | 0 B/op |
 
 An earlier version of the split showed increased sampling cost. A separate JFR run
 attributed most sampled execution to Simplex and field-coordinate scaling; it also
-reported 71–83% machine CPU load. Preparing reciprocal noise scales once removed two
+reported 71â€“83% machine CPU load. Preparing reciprocal noise scales once removed two
 divisions per field query. The shared climate component avoids calculating dryness
 and frost twice when mountains and cliffs are active. Both remain ordinary editable
 rules, without measurement branches or special generated code in production.
 
 Timing is noisy on this host. The full verification's final core run measured
-66.011 µs/chunk, 0.149 µs/mixed height, 0.270 µs/full column,
-0.361 µs/mountain height and 0.451 µs/mountain column. The paired biome and mountain-height
+66.011 Âµs/chunk, 0.149 Âµs/mixed height, 0.270 Âµs/full column,
+0.361 Âµs/mountain height and 0.451 Âµs/mountain column. The paired biome and mountain-height
 results above are slightly slower, while the latter is faster in the other final run;
 these measurements do not justify claiming every path improved or a precise global
 speedup. All reusable API allocation budgets passed at 0 B/op.
@@ -317,3 +364,69 @@ output buffers, palettes and heightmaps. It excludes caves, decoration, structur
 lighting, saving and networking. It therefore **does not imply twice the overall world
 generation speed or client FPS**. JIT compilation, GC and machine load affect the results;
 long-term profiling of a complete modpack remains outstanding.
+
+## Open-biome tree placement (2026-10-01)
+
+The production change adds no work to terrain or biome sampling. Its forest-patch query
+is called only for tree candidates in tagged open biomes, after original placement
+filters. Most positions exit after one forest noise query; the ambiguous climate-dependent
+threshold evaluates the existing temperature and height paths. The opt-in component
+benchmark measured a median 0.025 microseconds/query and 0 B/op on its mixed input grid.
+This isolates the pointwise mask, not the complete Minecraft placement pipeline.
+
+Initial Gradle benchmark timings fluctuated, including a roughly 11% chunk-sampling
+increase while column and mountain costs decreased. A consecutive direct-Java recheck
+compiled the saved pre-change core source separately and used identical Java 21 defaults,
+benchmark inputs and warmups. All terrain/biome checksums agreed:
+
+| Reused path | Before | After | Allocation |
+| --- | ---: | ---: | ---: |
+| Chunk buffer | 68.374 us/chunk | 66.654 us/chunk | 0 B/op |
+| Mixed height | 0.150 us/query | 0.151 us/query | 0 B/op |
+| Mixed column | 0.282 us/query | 0.292 us/query | 0 B/op |
+| Column plus biome | 0.286 us/query | 0.282 us/query | 0 B/op |
+| Mountain height | 0.369 us/query | 0.367 us/query | 0 B/op |
+| Mountain column | 0.448 us/query | 0.450 us/query | 0 B/op |
+
+The isolated recheck does not reproduce a material terrain regression. Small differences
+are not evidence of a speedup. Sources/results are under `build/decoration-before`,
+`build/decoration-after-recheck.log`, and `build/decoration-verify.log`.
+
+The integration comparison used seed -8458999313514431577 and a private datapack that
+disables only the tree modifier for the baseline. Fresh-server raw-fill medians were
+0.451 ms/chunk without filtering and 0.419 with filtering; allocation was approximately
+15.3 KB/chunk in both cases. Biome-fill medians were 0.081 and 0.080 ms/chunk.
+Raw-fill checksums agree. These timers exclude decoration and cannot quantify reduced
+tree-generation cost or imply a total-world-generation speedup. Fresh and reload checks
+also passed with filtering; reload raw-fill median was 0.442 ms/chunk. Baseline evidence
+is `build/decoration-baseline-server.log`. The modifier-instance wrapper cache is used
+only during registry construction; no cache lock or instrumentation runs during placement.
+
+## Savanna vegetation bands (2026-10-02)
+
+Replacing the Sparse Jungle surface transition with Savanna retains physical relief and
+climate noise. A humidity-only query supplies the dry/wooded placement decision, using
+the same forest increment and altitude-dependent trigger as full sampling. On the existing
+mixed component workload it measured 0.087 us/query and 0 B/op. This is more work than
+a forest-only predicate, but is evaluated only for candidate trees in Savanna-family biomes;
+normal column generation receives no additional noise queries or result allocations.
+
+Warmed Java 21 Gradle benchmarks before/after, with identical seeds and coordinates:
+
+| Reused path | Before | After | Allocation |
+| --- | ---: | ---: | ---: |
+| Chunk buffer | 65.725 us/chunk | 63.628 us/chunk | 0 B/op |
+| Mixed height | 0.146 us/query | 0.143 us/query | 0 B/op |
+| Mixed column | 0.279 us/query | 0.267 us/query | 0 B/op |
+| Column plus biome | 0.277 us/query | 0.278 us/query | 0 B/op |
+| Mountain height | 0.361 us/query | 0.355 us/query | 0 B/op |
+| Mountain column | 0.437 us/query | 0.429 us/query | 0 B/op |
+
+No material sampling regression was observed. Height/column checksums agree; biome
+checksums intentionally change. Evidence is in `build/savanna-before/core.log` and
+`build/savanna-verify.log`. Both fresh and reloaded server checks passed, including native
+trees in moderately humid Savanna outside forest patches and a treeless dry Savanna chunk.
+Fresh/reload raw-fill medians were both 0.228 ms/chunk, with approximately 15.4/15.5 KB
+allocated per chunk. A fresh private-world comparison with only the decoration filter
+disabled is recorded in `build/savanna-baseline-server.log`; raw-fill checksums agree.
+Those raw-fill timers exclude decoration and do not measure total tree-generation cost.

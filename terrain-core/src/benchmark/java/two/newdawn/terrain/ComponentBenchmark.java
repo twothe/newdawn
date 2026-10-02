@@ -45,6 +45,8 @@ public final class ComponentBenchmark {
             double height = CliffProfile.height(influence[i], main[i], local[i], secondary[i], output);
             return height + (output.exposedRock ? 1 : 0);
         });
+        measure("humidity-only-query", i -> sampler.sampleHumidity(x(i), z(i)));
+        measure("forest-patch-query", i -> sampler.isForestPatch(x(i), z(i)) ? 1 : 0);
         measure("surface-palette", i -> BiomePalette.select(columns[i]).biome().hashCode());
         measure("vertical-palette", i -> BiomePalette.selectAt(columns[i], (i & 127) - 64).biome().hashCode());
         System.out.println("Component checksum=" + TerrainBenchmark.blackhole + "; use profile for full-workload stack attribution");

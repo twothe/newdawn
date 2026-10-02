@@ -14,12 +14,14 @@
 - Keep production sources free of test entry points, timing and allocation instrumentation. Core tests live in `terrain-core/src/test`, opt-in benchmarks in `terrain-core/src/benchmark`, and game checks in `src/integrationTest`.
 - Normal builds run short contract/allocation checks. Use `:terrain-core:extendedCheck` for broad surveys and `tools/verify.ps1 -Smoke -Benchmark` for integration/performance verification. Judge visual quality in the Minecraft client with the intended modpack; do not build a standalone terrain viewer.
 - Keep generation components directly composable and easy to edit. Put tuning controls next to the rules they govern; avoid rigid stage frameworks or speculative extension layers.
+- Preserve the one-sided forest humidity overlay: nearby wooded areas serve visual variety and wood availability. Rebalance climate selection around this intentional gameplay bias; do not remove or neutralize it to fit statistics.
+- When running Gradle from the Codex sandbox, pass `--no-daemon` (or `tools/verify.ps1 -NoDaemon`) and override test installation to a writable project-local directory. A reused sandbox daemon cannot write to external Minecraft instances when later invoked by VS Code. Do not change the user's private install setting.
 - Use Java 21. Run `./gradlew :terrain-core:check build` and the dedicated server smoke check for generation/lifecycle changes.
 - Do not modify the original Forge project. Do not introduce per-version adapter hierarchies or reflection for speculative compatibility.
 
 # Project Overview
 
-New Dawn is a terrain generation mod for NeoForge / Minecraft 1.21.1, continuing the project's Forge 1.7.10 version. Vanilla biome registry entries retain normal decoration, structures and mod biome modifiers.
+New Dawn is a terrain generation mod for NeoForge / Minecraft 1.21.1, continuing the project's Forge 1.7.10 version. Vanilla biome registry entries retain their identities, structures and mod biome modifiers. Scattered trees in open biomes use forest patches; Savanna uses dry/wooded humidity bands, both with Vanilla biome identity, only in New Dawn worlds; see `docs/biomes.md`.
 
 # Documentation Index
 
@@ -29,6 +31,8 @@ New Dawn is a terrain generation mod for NeoForge / Minecraft 1.21.1, continuing
 - `docs/performance.md`: reusable sampling APIs, allocation budgets and measured optimization results.
 - `docs/mountains.md`: multifractal mountain profiles, climate-shaped cliffs and client inspection.
 - `docs/biomes.md`: climate/elevation/depth selection, all non-river overworld biomes and ocean-hole regression.
+- `docs/climate-distribution.md`: game-resolved climate statistics, translation effects and the opt-in repeatable survey.
+- `docs/climate-rebalancing-plan.md`: implemented design for balanced climate availability, preserved forest patches, coherent transitions and measured verification; final values/results are in the biome and distribution docs.
 
 # Glossary
 

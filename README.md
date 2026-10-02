@@ -59,6 +59,15 @@ named JARs are left untouched. An invalid destination or copy failure fails the 
 with an explanation. Close the test client before replacing a JAR it has loaded;
 restart it to use the new code. Building only `jar` does not install anything.
 
+If staging fails with `AccessDeniedException` despite a correct writable directory,
+a Gradle daemon started in a restricted environment may have been reused. Run
+`.\gradlew.bat --stop`, then build again from your normal VS Code terminal. Automated
+Codex checks use `--no-daemon` to avoid sharing such a process with interactive builds.
+The default VS Code build task also uses `--no-daemon`, so Ctrl+Shift+B always starts
+its build process with the permissions of VS Code rather than reusing an older daemon.
+Copy errors report the failed operation, destination and underlying filesystem error;
+a failure to create a staging file is distinct from an installed JAR being locked.
+
 The build setup follows the [official 1.21.1 MDK](https://github.com/NeoForgeMDKs/MDK-1.21.1-ModDevGradle).
 Development launches include Java libraries as described by
 [ModDevGradle](https://github.com/neoforged/ModDevGradle#additional-runtime-dependencies).

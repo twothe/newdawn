@@ -43,6 +43,22 @@ public final class TerrainSampler {
     /** First air/water Y; evaluates broad climate only inside mountains, without filler or allocations. */
     public int sampleHeight(int x, int z) { return relief.height(x, z); }
 
+    /** Final selection humidity, including woodland boost, without sampling unused column outputs or allocating. */
+    public float sampleHumidity(int x, int z) {
+        double humidity = climate.broadHumidity(x, z) + noise.humidityLocal.at(x, z) * 0.05;
+        return (float) ClimateRules.humidityWithForestPatch(humidity, isForestPatch(x, z));
+    }
+
+    /** Existing woodland overlay at a block coordinate; allocation-free and independent of surrounding columns. */
+    public boolean isForestPatch(int x, int z) {
+        double forest = noise.forest.at(x, z);
+        if (forest <= ClimateRules.FOREST_THRESHOLD) return false;
+        if (forest > ClimateRules.HOT_FOREST_THRESHOLD) return true;
+        double temperature = climate.broadTemperature(x, z) + noise.temperatureLocal.at(x, z) * 0.05
+                - ClimateRules.coolingAt(sampleHeight(x, z));
+        return ClimateRules.isForestPatch(temperature, forest);
+    }
+
     /** Mountain coverage from the current seed-specific field. */
     double mountainInfluence(int x, int z) { return relief.mountainInfluence(x, z); }
 

@@ -2,6 +2,7 @@
 param(
     [switch]$Smoke,
     [switch]$Offline,
+    [switch]$NoDaemon,
     [switch]$Benchmark,
     [switch]$Extended,
     [switch]$Profile,
@@ -17,6 +18,7 @@ try {
     if ($JavaHome) { $env:JAVA_HOME = $JavaHome }
     if (-not $env:GRADLE_USER_HOME) { $env:GRADLE_USER_HOME = Join-Path $projectRoot '.gradle-user-home' }
     $gradleArguments = @('--console=plain')
+    if ($NoDaemon) { $gradleArguments += '--no-daemon' }
     if ($Offline) { $gradleArguments += '--offline' }
     $buildTasks = @('build')
     if ($Extended -or $Smoke) { $buildTasks += ':terrain-core:extendedCheck' }

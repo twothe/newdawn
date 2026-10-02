@@ -60,7 +60,7 @@
       ],
       "vmArgs": [
         "@C:\\Work\\Java\\Projekte\\mc-neoforge-newdawn\\build\\moddev\\smokeServerRunVmArgs.txt",
-        "-Dfml.modFolders\u003dnewdawn%%C:\\Work\\Java\\Projekte\\mc-neoforge-newdawn\\bin\\main"
+        "-Dfml.modFolders\u003dnewdawnIntegration%%C:\\Work\\Java\\Projekte\\mc-neoforge-newdawn\\bin\\main;newdawnIntegration%%C:\\Work\\Java\\Projekte\\mc-neoforge-newdawn\\bin\\integrationTest"
       ],
       "cwd": "${workspaceFolder}\\build\\smoke-server",
       "env": {},

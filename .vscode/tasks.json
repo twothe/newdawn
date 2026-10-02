@@ -5,7 +5,7 @@
       "label": "Build New Dawn",
       "type": "shell",
       "command": "./gradlew",
-      "args": ["build", "--console=plain"],
+      "args": ["build", "--console=plain", "--no-daemon"],
       "options": {
         "cwd": "${workspaceFolder}",
         "env": {
